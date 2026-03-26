@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&amp;family=Work+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline-variant": "#c5c6ce",
+              "on-error": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-primary-container": "#ecf1ff",
+              "error-container": "#ffdad6",
+              "surface-container-highest": "#e4e2de",
+              "on-secondary-container": "#666460",
+              "background": "#fbf9f5",
+              "tertiary-container": "#646e7d",
+              "surface-container": "#efeeea",
+              "surface": "#fbf9f5",
+              "secondary-container": "#e5e2dc",
+              "error": "#ba1a1a",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#b8c7e6",
+              "on-primary-fixed-variant": "#384761",
+              "on-surface-variant": "#44474d",
+              "on-secondary-fixed-variant": "#484743",
+              "on-secondary-fixed": "#1c1c18",
+              "tertiary-fixed-dim": "#bdc7d8",
+              "surface-variant": "#e4e2de",
+              "primary": "#475671",
+              "tertiary-fixed": "#d9e3f5",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#c9c6c1",
+              "on-tertiary-fixed-variant": "#3e4756",
+              "outline": "#75777e",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed": "#0b1c34",
+              "on-tertiary-container": "#eaf1ff",
+              "surface-container-high": "#eae8e4",
+              "on-surface": "#1b1c1a",
+              "primary-container": "#5f6e8a",
+              "tertiary": "#4c5664",
+              "surface-bright": "#fbf9f5",
+              "inverse-surface": "#30312e",
+              "on-tertiary": "#ffffff",
+              "surface-tint": "#505f7a",
+              "inverse-primary": "#b8c7e6",
+              "inverse-on-surface": "#f2f0ec",
+              "on-background": "#1b1c1a",
+              "secondary-fixed": "#e5e2dc",
+              "secondary": "#605e5a"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif SC", "serif"],
+              "body": ["Work Sans", "Noto Sans SC", "sans-serif"],
+              "label": ["Work Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      body {
+        background-color: #F7F5F1;
+        color: #1F1F1C;
+        font-family: 'Work Sans', 'Noto Sans SC', sans-serif;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #DDD7CC;
+        border-radius: 10px;
+      }
+      .active-nav-link {
+        border-bottom: 2px solid #5F6E8A;
+        padding-bottom: 4px;
+        color: #111111;
+        font-weight: 700;
+      }
+    </style>
+</head>
+<body class="bg-[#F7F5F1] text-[#1F1F1C] selection:bg-primary-container selection:text-white">
+<!-- TopNavBar (Fixed & Integrated) -->
+<header class="fixed top-0 w-full z-50 bg-[#F7F5F1]/80 backdrop-blur-md">
+<nav class="flex justify-between items-center px-12 py-4 w-full">
+<div class="font-['Noto_Serif_SC'] text-2xl font-bold text-[#111111]">Logic</div>
+<div class="hidden md:flex items-center gap-10 font-['Noto_Serif_SC'] text-base tracking-tight">
+<a class="text-[#7A766F] hover:text-[#111111] transition-colors" href="#">首页</a>
+<a class="text-[#111111] font-bold border-b-2 border-[#5F6E8A] pb-1" href="#">知识库</a>
+<a class="text-[#7A766F] hover:text-[#111111] transition-colors" href="#">文章分享</a>
+<a class="text-[#7A766F] hover:text-[#111111] transition-colors" href="#">关于我</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-[#5F6E8A] transition-all duration-300 hover:scale-110 active:scale-95">
+<span class="material-symbols-outlined" data-icon="light_mode">light_mode</span>
+</button>
+</div>
+</nav>
+</header>
+<div class="flex min-h-screen pt-20">
+<!-- SideNavBar (Left Sidebar - Documentation Structure) -->
+<aside class="hidden md:flex flex-col w-72 h-[calc(100vh-5rem)] sticky top-20 bg-[#EAE8E4] p-6 overflow-y-auto custom-scrollbar">
+<div class="mb-8">
+<h3 class="font-headline text-lg font-bold text-primary mb-1">教程目录</h3>
+<p class="font-label text-xs text-secondary tracking-widest uppercase">AI Mastery Series</p>
+</div>
+<nav class="flex flex-col gap-1">
+<!-- Group 1 -->
+<div class="mb-4">
+<p class="text-[10px] font-bold text-secondary-fixed-dim uppercase tracking-widest mb-2 px-3">入门指南</p>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-l-lg transition-transform duration-200 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">引言</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1 transition-all duration-200" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">核心概念</span>
+</a>
+</div>
+<!-- Group 2 -->
+<div class="mb-4">
+<p class="text-[10px] font-bold text-secondary-fixed-dim uppercase tracking-widest mb-2 px-3">进阶技术</p>
+<a class="flex items-center gap-3 px-3 py-2.5 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1 transition-all duration-200" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">进阶提示词技巧</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1 transition-all duration-200" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">实战案例</span>
+</a>
+</div>
+<!-- Group 3 -->
+<div class="mb-4">
+<p class="text-[10px] font-bold text-secondary-fixed-dim uppercase tracking-widest mb-2 px-3">深度原理</p>
+<a class="flex items-center gap-3 px-3 py-2.5 font-semibold border-l-2 border-primary-container pl-2.5 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">理解 Token</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1 transition-all duration-200" href="#">
+<span class="font-['Work_Sans'] text-sm font-medium">注意力机制</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Central Reading Area -->
+<main class="flex-1 px-8 md:px-20 py-12 max-w-4xl mx-auto">
+<header class="mb-12 border-b border-outline-variant/15 pb-8">
+<nav class="flex gap-2 text-xs font-label text-secondary mb-6 tracking-wide">
+<span>知识库</span>
+<span>/</span>
+<span>深度原理</span>
+<span>/</span>
+<span class="text-primary-container font-medium">Understanding Tokens</span>
+</nav>
+<h1 class="font-headline text-5xl font-black text-[#1F1F1C] leading-tight mb-4">Understanding Tokens: The DNA of Large Language Models</h1>
+<p class="font-body text-lg text-secondary leading-relaxed max-w-2xl">
+                    探究模型是如何将人类语言转化为数学序列的，以及为什么 Token 计数对成本和性能至关重要。
+                </p>
+</header>
+<article class="prose prose-stone max-w-none font-body text-[#1F1F1C] space-y-8">
+<div class="relative w-full aspect-video rounded-lg overflow-hidden mb-12 shadow-sm">
+<img alt="Abstract digital visualization of data particles" class="w-full h-full object-cover" data-alt="Abstract visualization of glowing digital particles and code fragments floating in a dark minimalist space with warm highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACt5DzmuKmB7orWdqxYZ19-aOnV1mAKRqrfTCkWy9lU5FFhisLITW9MZwbULVt5D8_n_3Nv7bDq8HdlTO9cGWTYxF2nZ_P5ra7JVUgnXjvwkq6y4AYzZ-ru8vL0zncKqeYm435wjXkc724Jl6194zopiDi8tN13DRqB_G5tRoTGKLtys5yZlU8joG6OmcvGuNUcUKIy_MdNTqkVumZFM9Cj-wMxg6SObx19QjH6sOVT3W5Z0u0fV_L6JaCifBHd0b-5oi70ZyOsSo"/>
+</div>
+<section id="introduction">
+<h2 class="font-headline text-3xl font-bold mb-6 text-primary">什么是 Token？</h2>
+<p class="leading-relaxed mb-6 text-base text-[#44474d]">
+                        在自然语言处理（NLP）的世界中，Token 是最小的语义单位。对于人类来说，我们阅读的是单词和句子；而对于大型语言模型（LLM）如 GPT-4 来说，它们处理的是被称为 "Tokens" 的数字块。
+                    </p>
+<p class="leading-relaxed mb-6 text-base text-[#44474d]">
+                        一个 Token 不一定是一个完整的单词。它可以是一个单词、一个单词的一部分（如前缀或后缀），甚至是标点符号。这种精细的拆分方式让模型能够更高效地处理罕见词汇。
+                    </p>
+</section>
+<div class="bg-surface-container-low p-8 rounded-lg border-l-4 border-primary-container my-10">
+<h4 class="font-bold text-primary mb-2">💡 专家提示</h4>
+<p class="text-sm italic text-on-surface-variant">
+                        作为通用规则，在英文文本中，1000 个 Token 大约等于 750 个单词。而在中文中，通常一个汉字对应 1 到 2 个 Token，具体取决于模型的分词器。
+                    </p>
+</div>
+<section id="tokenization-process">
+<h2 class="font-headline text-3xl font-bold mb-6 text-primary">分词过程 (Tokenization)</h2>
+<p class="leading-relaxed mb-6 text-base text-[#44474d]">
+                        分词是将原始文本转换为 Token 序列的过程。目前的 SOTA 模型多采用 Byte-Pair Encoding (BPE) 算法。
+                    </p>
+<ul class="space-y-4 mb-8">
+<li class="flex gap-4">
+<span class="flex-none w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">1</span>
+<span class="text-[#44474d]"><strong>标准化：</strong> 清理文本，处理空格和特殊字符。</span>
+</li>
+<li class="flex gap-4">
+<span class="flex-none w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">2</span>
+<span class="text-[#44474d]"><strong>拆分：</strong> 根据预定义的词表（Vocabulary）将文本切碎。</span>
+</li>
+<li class="flex gap-4">
+<span class="flex-none w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">3</span>
+<span class="text-[#44474d]"><strong>编码：</strong> 将每个 Token 映射到其在词表中的索引 ID。</span>
+</li>
+</ul>
+</section>
+<section class="mt-12" id="why-it-matters">
+<h2 class="font-headline text-3xl font-bold mb-6 text-primary">为什么这很重要？</h2>
+<div class="grid md:grid-cols-2 gap-8 mt-6">
+<div class="p-6 bg-surface-container-highest/30 rounded-lg">
+<h3 class="font-bold mb-3">上下文窗口限制</h3>
+<p class="text-sm text-secondary leading-relaxed">每个模型都有最大的 Token 容纳量。如果你理解了 Token 的计算，你就能写出更简洁、更高效的 Prompt。</p>
+</div>
+<div class="p-6 bg-surface-container-highest/30 rounded-lg">
+<h3 class="font-bold mb-3">推理成本计算</h3>
+<p class="text-sm text-secondary leading-relaxed">大多数 API 提供商（如 OpenAI, Anthropic）都是基于 Token 数量收费的。优化 Token 使用直接等于节省成本。</p>
+</div>
+</div>
+</section>
+</article>
+<!-- Navigation Footer -->
+<footer class="mt-20 pt-10 border-t border-outline-variant/15 flex justify-between items-center">
+<a class="group" href="#">
+<p class="text-xs font-label text-secondary mb-1">PREVIOUS</p>
+<div class="flex items-center gap-2 text-primary font-bold group-hover:translate-x-[-4px] transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="arrow_back">arrow_back</span>
+<span>Core Concepts</span>
+</div>
+</a>
+<a class="group text-right" href="#">
+<p class="text-xs font-label text-secondary mb-1">NEXT</p>
+<div class="flex items-center gap-2 text-primary font-bold group-hover:translate-x-[4px] transition-transform justify-end">
+<span>Attention Mechanism</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</a>
+</footer>
+</main>
+<!-- Right Sidebar (Table of Contents) -->
+<aside class="hidden lg:flex flex-col w-64 h-[calc(100vh-5rem)] sticky top-20 p-8 border-l border-outline-variant/10">
+<h4 class="font-headline text-sm font-bold mb-6 tracking-wide">本章目录</h4>
+<nav class="flex flex-col gap-4 text-sm font-body">
+<a class="text-primary-container font-semibold relative flex items-center gap-2 text-[#7A766F] hover:bg-[#F4F1EB] hover:translate-x-1" href="#introduction">
+<span class="w-1 h-4 bg-primary-container absolute -left-4 rounded-full"></span>
+                    什么是 Token？
+                </a>
+<a class="text-[#7A766F] hover:text-primary transition-colors" href="#tokenization-process">
+                    分词过程 (Tokenization)
+                </a>
+<a class="text-[#7A766F] hover:text-primary transition-colors" href="#why-it-matters">
+                    为什么这很重要？
+                </a>
+</nav>
+</aside>
+</div>
+</body></html>

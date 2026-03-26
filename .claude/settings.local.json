@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:\\\\Users\\\\zym\\\\Desktop\\\\logic:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "WebSearch",
+      "WebFetch(domain:webkit.org)"
+    ]
+  }
+}

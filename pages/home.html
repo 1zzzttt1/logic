@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Logic | 探索AI，理解未来</title>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+  />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+  />
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: "#F7F5F1",
+            "on-background": "#1F1F1C",
+            surface: "#FFFFFF",
+            "on-surface": "#1F1F1C",
+            "on-surface-variant": "#6A6863",
+            primary: "#6B7B98",
+            secondary: "#111111",
+            outline: "#D6D1C9",
+
+            "dark-background": "#060D18",
+            "dark-surface": "#0B1422",
+            "dark-text": "#F4F6FA",
+            "dark-muted": "#A6AFBF"
+          },
+          fontFamily: {
+            headline: ["Noto Serif SC", "serif"],
+            body: ["Manrope", "Noto Sans SC", "sans-serif"],
+          },
+          boxShadow: {
+            soft: "0 12px 30px rgba(31, 31, 28, 0.06)",
+            button: "0 14px 28px rgba(0, 0, 0, 0.18)",
+            darkbutton: "0 10px 28px rgba(0, 0, 0, 0.38)",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html.dark {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      color: #1f1f1c;
+      background:
+        radial-gradient(
+          circle at 50% 38%,
+          rgba(232, 240, 239, 0.92) 0%,
+          rgba(232, 240, 239, 0.72) 22%,
+          rgba(247, 245, 241, 0) 52%
+        ),
+        linear-gradient(
+          180deg,
+          #f7f5f1 0%,
+          #eef3f2 48%,
+          #e8f0ef 100%
+        );
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+      transition: background 0.45s ease, color 0.35s ease;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    html.dark body {
+      color: #f4f6fa;
+      background:
+        linear-gradient(
+          90deg,
+          transparent 0%,
+          transparent 18%,
+          rgba(255, 255, 255, 0.018) 18%,
+          rgba(255, 255, 255, 0.018) 22%,
+          transparent 22%,
+          transparent 40%,
+          rgba(255, 255, 255, 0.018) 40%,
+          rgba(255, 255, 255, 0.018) 44%,
+          transparent 44%,
+          transparent 62%,
+          rgba(255, 255, 255, 0.018) 62%,
+          rgba(255, 255, 255, 0.018) 66%,
+          transparent 66%,
+          transparent 100%
+        ),
+        radial-gradient(
+          circle at 50% 30%,
+          rgba(30, 70, 150, 0.18) 0%,
+          rgba(15, 43, 96, 0.14) 16%,
+          rgba(6, 13, 24, 0) 44%
+        ),
+        radial-gradient(
+          ellipse at center,
+          rgba(9, 30, 68, 0.38) 0%,
+          rgba(7, 17, 32, 0.22) 34%,
+          rgba(6, 13, 24, 0) 62%
+        ),
+        linear-gradient(
+          180deg,
+          #1b2739 0%,
+          #0f1b2d 18%,
+          #091321 42%,
+          #060d18 72%,
+          #040912 100%
+        );
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+    }
+
+    .site-shell {
+      position: relative;
+      min-height: 100vh;
+      isolation: isolate;
+    }
+
+    .ambient-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .ambient-overlay::before,
+    .ambient-overlay::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+
+    .ambient-overlay::before {
+      background:
+        radial-gradient(
+          circle at 50% 32%,
+          rgba(116, 145, 196, 0.14) 0%,
+          rgba(116, 145, 196, 0.08) 16%,
+          transparent 42%
+        );
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .ambient-overlay::after {
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.015) 0%,
+          rgba(255, 255, 255, 0) 20%,
+          rgba(0, 0, 0, 0.18) 100%
+        );
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    html.dark .ambient-overlay::before,
+    html.dark .ambient-overlay::after {
+      opacity: 1;
+    }
+
+    .brand-logo {
+      font-family: "Noto Serif SC", serif;
+      font-style: italic;
+      letter-spacing: -0.03em;
+    }
+
+    .nav-link {
+      position: relative;
+      transition: color 0.25s ease, opacity 0.25s ease;
+    }
+
+    .nav-link.active::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: -10px;
+      width: 40px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .hero-title {
+      font-family: "Noto Serif SC", serif;
+      font-weight: 900;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+      font-size: 2rem;
+      
+    }
+
+    .hero-subtitle {
+      line-height: 1.65;
+    }
+
+    .light-streak {
+      width: 150px;
+      height: 1px;
+      margin: 0 auto;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(107, 123, 152, 0.36),
+        transparent
+      );
+      opacity: 0.55;
+    }
+
+    html.dark .light-streak {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(166, 185, 220, 0.16),
+        transparent
+      );
+    }
+
+    .theme-toggle,
+    .menu-toggle {
+      width: 44px;
+      height: 44px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.28s ease;
+    }
+
+    .cta-btn {
+      min-width: 192px;
+      height: 58px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      transition: all 0.28s ease;
+    }
+
+    .mobile-menu-panel {
+      display: none;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background-attachment: scroll;
+      }
+
+      .site-shell {
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      html.light body {
+        color: #1f1f1c;
+        background:
+          radial-gradient(
+            circle at 50% 24%,
+            rgba(232, 240, 239, 0.92) 0%,
+            rgba(232, 240, 239, 0.72) 22%,
+            rgba(247, 245, 241, 0) 52%
+          ),
+          linear-gradient(
+            180deg,
+            #f7f5f1 0%,
+            #eef3f2 48%,
+            #e8f0ef 100%
+          );
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+
+      html.dark body {
+        color: #f4f6fa;
+        background:
+          linear-gradient(
+            90deg,
+            transparent 0%,
+            transparent 18%,
+            rgba(255, 255, 255, 0.018) 18%,
+            rgba(255, 255, 255, 0.018) 22%,
+            transparent 22%,
+            transparent 40%,
+            rgba(255, 255, 255, 0.018) 40%,
+            rgba(255, 255, 255, 0.018) 44%,
+            transparent 44%,
+            transparent 62%,
+            rgba(255, 255, 255, 0.018) 62%,
+            rgba(255, 255, 255, 0.018) 66%,
+            transparent 66%,
+            transparent 100%
+          ),
+          radial-gradient(
+            circle at 50% 22%,
+            rgba(30, 70, 150, 0.18) 0%,
+            rgba(15, 43, 96, 0.14) 16%,
+            rgba(6, 13, 24, 0) 44%
+          ),
+          radial-gradient(
+            ellipse at center,
+            rgba(9, 30, 68, 0.38) 0%,
+            rgba(7, 17, 32, 0.22) 34%,
+            rgba(6, 13, 24, 0) 62%
+          ),
+          linear-gradient(
+            180deg,
+            #1b2739 0%,
+            #0f1b2d 18%,
+            #091321 42%,
+            #060d18 72%,
+            #040912 100%
+          );
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+
+      .desktop-nav {
+        display: none !important;
+      }
+
+      .topbar {
+        flex: 0 0 auto;
+        padding: calc(var(--safe-top) + 18px) 20px 0;
+      }
+
+      .brand-logo {
+        font-size: 1.9rem;
+      }
+
+      html.light .brand-logo {
+        color: #1f1f1c;
+      }
+
+      html.dark .brand-logo {
+        color: rgba(244, 246, 250, 0.94);
+      }
+
+      .hero-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 14px 20px calc(var(--safe-bottom) + 20px);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: stretch;
+        text-align: left;
+      }
+
+      .hero-content {
+        width: 100%;
+        max-width: none;
+      }
+
+      .light-streak {
+        width: 76px;
+        margin: 0 0 28px 0;
+      }
+
+      html.light .light-streak {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(107, 123, 152, 0.42),
+          transparent
+        );
+        opacity: 0.7;
+      }
+
+      html.dark .light-streak {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(166, 185, 220, 0.18),
+          transparent
+        );
+        opacity: 0.55;
+      }
+
+      .hero-title {
+        font-size: clamp(3.5rem, 8vw, 6rem);
+        margin-bottom: 18px;
+        letter-spacing: 0.08em;
+        line-height: 1.1;
+      }
+
+      html.light .hero-title {
+        color: #181816;
+      }
+
+      html.dark .hero-title {
+        color: #f4f6fa;
+      }
+
+      .hero-subtitle {
+        font-size: 0.98rem;
+        max-width: 250px;
+        margin: 0 0 24px 0;
+        font-weight: 400;
+        line-height: 1.65;
+      }
+
+      html.light .hero-subtitle {
+        color: #5e5c57;
+      }
+
+      html.dark .hero-subtitle {
+        color: #a6afbf;
+      }
+
+      .cta-btn {
+        display: flex;
+        width: min(220px, 68%);
+        margin: 0 auto;
+        min-width: 0;
+        height: 68px;
+        border-radius: 9999px;
+        font-size: 1rem;
+      }
+
+      html.light .cta-btn {
+        background: #111111;
+        color: #ffffff;
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+      }
+
+      html.dark .cta-btn {
+        background: #ffffff;
+        color: #0b1020;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+      }
+
+      .theme-toggle,
+      .menu-toggle {
+        width: 52px;
+        height: 52px;
+      }
+
+      html.light .theme-toggle,
+      html.light .menu-toggle {
+        border: 1px solid rgba(214, 209, 201, 0.86);
+        background: rgba(255, 255, 255, 0.78);
+        color: #5f5d58;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 6px 18px rgba(31, 31, 28, 0.06);
+      }
+
+      html.dark .theme-toggle,
+      html.dark .menu-toggle {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(13, 23, 38, 0.88);
+        color: #f4f6fa;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .mobile-menu-panel {
+        position: absolute;
+        top: calc(var(--safe-top) + 82px);
+        right: 20px;
+        width: 184px;
+        padding: 10px;
+        border-radius: 22px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-8px);
+        transition: all 0.26s ease;
+        display: block;
+      }
+
+      html.light .mobile-menu-panel {
+        background: rgba(255,255,255,0.96);
+        border: 1px solid rgba(214, 209, 201, 0.86);
+        box-shadow: 0 12px 30px rgba(31, 31, 28, 0.08);
+      }
+
+      html.dark .mobile-menu-panel {
+        background: rgba(11, 20, 34, 0.94);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+      }
+
+      .mobile-menu-panel.show {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .mobile-menu-panel a {
+        display: block;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 0.95rem;
+        text-decoration: none;
+      }
+
+      html.light .mobile-menu-panel a {
+        color: #1f1f1c;
+      }
+
+      html.dark .mobile-menu-panel a {
+        color: #f4f6fa;
+      }
+
+      html.light .mobile-menu-panel a:hover {
+        background: rgba(214, 209, 201, 0.24);
+      }
+
+      html.dark .mobile-menu-panel a:hover {
+        background: rgba(255,255,255,0.06);
+      }
+    }
+
+    /* Desktop */
+    @media (min-width: 768px) {
+      .menu-toggle,
+      .mobile-menu-panel {
+        display: none !important;
+      }
+
+      .topbar {
+        padding: 26px 52px 0;
+      }
+
+      .brand-logo {
+        font-size: 2.15rem;
+      }
+
+      .hero-wrap {
+        min-height: calc(100vh - 106px);
+        padding: 4rem 2rem 6rem;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      .hero-content {
+        width: 100%;
+      }
+
+      .hero-title {
+        font-size: clamp(4rem, 6vw, 5.6rem);
+        margin-bottom: 1.7rem;
+        letter-spacing: 0.5rem;
+        line-height: 6rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.2rem;
+        max-width: 680px;
+        margin: 0 auto 2.8rem;
+      }
+
+      .cta-btn {
+        min-width: 220px;
+        height: 58px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body class="font-body selection:bg-primary/20">
+  <div class="site-shell">
+    <div class="ambient-overlay"></div>
+
+    <header class="topbar relative z-20">
+      <nav class="flex items-center justify-between relative">
+        <div class="brand-logo text-on-background dark:text-dark-text">
+          Logic
+        </div>
+
+        <div
+          class="desktop-nav absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-14"
+        >
+          <a
+            href="#"
+            class="nav-link active text-on-background/90 dark:text-dark-text text-[1.15rem] font-semibold"
+          >
+            首页
+          </a>
+          <a
+            href="#"
+            class="nav-link text-on-surface-variant dark:text-dark-muted text-[1.15rem] font-medium hover:text-on-background dark:hover:text-dark-text"
+          >
+            知识库
+          </a>
+          <a
+            href="#"
+            class="nav-link text-on-surface-variant dark:text-dark-muted text-[1.15rem] font-medium hover:text-on-background dark:hover:text-dark-text"
+          >
+            文章分享
+          </a>
+          <a
+            href="#"
+            class="nav-link text-on-surface-variant dark:text-dark-muted text-[1.15rem] font-medium hover:text-on-background dark:hover:text-dark-text"
+          >
+            关于我
+          </a>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            id="themeToggle"
+            class="theme-toggle bg-white/72 border border-outline/80 text-on-surface-variant shadow-sm dark:bg-[#0d1726]/88 dark:border-white/8 dark:text-dark-text"
+            aria-label="切换明暗模式"
+            title="切换明暗模式"
+          >
+            <span id="themeIcon" class="material-symbols-outlined text-[20px]">
+              light_mode
+            </span>
+          </button>
+
+          <button
+            id="menuToggle"
+            class="menu-toggle"
+            aria-label="打开菜单"
+            title="打开菜单"
+          >
+            <span class="material-symbols-outlined text-[28px]">menu</span>
+          </button>
+        </div>
+
+        <div id="mobileMenu" class="mobile-menu-panel">
+          <a href="#">首页</a>
+          <a href="#">知识库</a>
+          <a href="#">文章分享</a>
+          <a href="#">关于我</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="hero-wrap flex flex-col relative z-10">
+      <div class="hero-content">
+        <div class="light-streak mb-12"></div>
+
+        <h1 class="hero-title text-on-background dark:text-dark-text">
+          探索AI
+          <div>理解未来</div>
+        </h1>
+
+        <p class="hero-subtitle text-on-surface-variant dark:text-dark-muted font-light">
+          以清晰的认知，
+          走进智能时代。
+        </p>
+
+        <button
+          class="cta-btn bg-secondary text-white shadow-button dark:bg-white dark:text-[#0b1020] dark:shadow-darkbutton"
+        >
+          <span>开始探索</span>
+          <span class="material-symbols-outlined text-[24px]">arrow_forward</span>
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const html = document.documentElement;
+      const toggle = document.getElementById("themeToggle");
+      const icon = document.getElementById("themeIcon");
+      const menuToggle = document.getElementById("menuToggle");
+      const mobileMenu = document.getElementById("mobileMenu");
+      const storageKey = "logic-theme";
+
+      function applyTheme(theme) {
+        if (theme === "dark") {
+          html.classList.add("dark");
+          html.classList.remove("light");
+          icon.textContent = "dark_mode";
+        } else {
+          html.classList.add("light");
+          html.classList.remove("dark");
+          icon.textContent = "light_mode";
+        }
+      }
+
+      const savedTheme = localStorage.getItem(storageKey);
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+
+      applyTheme(initialTheme);
+
+      toggle.addEventListener("click", function () {
+        const isDark = html.classList.contains("dark");
+        const nextTheme = isDark ? "light" : "dark";
+        applyTheme(nextTheme);
+        localStorage.setItem(storageKey, nextTheme);
+      });
+
+      if (menuToggle && mobileMenu) {
+        menuToggle.addEventListener("click", function (e) {
+          e.stopPropagation();
+          mobileMenu.classList.toggle("show");
+        });
+
+        document.addEventListener("click", function (e) {
+          if (!mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+            mobileMenu.classList.remove("show");
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
