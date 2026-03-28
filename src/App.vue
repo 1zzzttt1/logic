@@ -6,7 +6,7 @@ import { useRoute } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 
 const route = useRoute()
-const isKnowledgePage = route.path === '/knowledge'
+const isKnowledgePage = computed(() => route.path === '/knowledge')
 
 const showPreloader = ref(true)
 const { playHomeReveal } = useHomeReveal()
@@ -21,8 +21,8 @@ onMounted(async () => {
 </script>
 
 <template>
-    <PreloaderReveal :visible="showPreloader" />
-    
+  <PreloaderReveal :visible="showPreloader" />
+
   <div class="site-shell" :class="{ 'knowledge-bg': isKnowledgePage }">
     <div class="ambient-overlay"></div>
     <AppHeader :isKnowledgePage="isKnowledgePage" />
@@ -36,6 +36,19 @@ onMounted(async () => {
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 0;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+}
 
 :root {
   color-scheme: light;
@@ -88,28 +101,24 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-   
 }
 
 body {
-  
   font-family: 'Manrope', 'Noto Sans SC', sans-serif;
   color: #1f1f1c;
- 
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
   transition: background 0.45s ease, color 0.35s ease;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  
 }
 
 .knowledge-bg body {
   background: #F7F5F1 !important;
 }
 
-html.dark body .site-shell{
+html.dark body .site-shell {
   color: #f4f6fa;
   background:
     linear-gradient(
@@ -234,8 +243,6 @@ html.dark .ambient-overlay::after {
 ::selection {
   background: rgba(107, 123, 152, 0.2);
 }
-
-
 
 /* Mobile styles */
 @media (max-width: 767px) {

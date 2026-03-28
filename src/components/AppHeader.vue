@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 defineProps<{
@@ -17,9 +17,10 @@ const navItems = [
   { name: '关于我', path: '/about', active: false }
 ]
 
-const toggleTheme = () => {
-  isDark.value = !isDark.value
-  if (isDark.value) {
+const applyTheme = (dark: boolean) => {
+  isDark.value = dark
+
+  if (dark) {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
     localStorage.setItem('logic-theme', 'dark')
@@ -28,6 +29,60 @@ const toggleTheme = () => {
     document.documentElement.classList.remove('dark')
     localStorage.setItem('logic-theme', 'light')
   }
+}
+
+const toggleTheme = async (e: MouseEvent) => {
+  const nextDark = !isDark.value
+  const button = e.currentTarget as HTMLElement | null
+
+  if (!button) {
+    applyTheme(nextDark)
+    return
+  }
+
+  const rect = button.getBoundingClientRect()
+  const x = rect.left + rect.width / 2
+  const y = rect.top + rect.height / 2
+
+  const endRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y)
+  )
+
+  const doc = document as Document & {
+    startViewTransition?: (
+      callback: () => Promise<void> | void
+    ) => {
+      ready: Promise<void>
+      finished: Promise<void>
+    }
+  }
+
+  if (!doc.startViewTransition) {
+    applyTheme(nextDark)
+    return
+  }
+
+  const transition = doc.startViewTransition(async () => {
+    applyTheme(nextDark)
+    await nextTick()
+  })
+
+  await transition.ready
+
+  document.documentElement.animate(
+    {
+      clipPath: [
+        `circle(24px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`
+      ]
+    },
+    {
+      duration: 700,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      pseudoElement: '::view-transition-new(root)'
+    }
+  )
 }
 
 const toggleMobileMenu = (e: Event) => {
@@ -51,14 +106,7 @@ onMounted(() => {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light')
 
-  if (initialTheme === 'dark') {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-    document.documentElement.classList.remove('light')
-  } else {
-    document.documentElement.classList.add('light')
-    document.documentElement.classList.remove('dark')
-  }
+  applyTheme(initialTheme === 'dark')
 
   document.addEventListener('click', handleDocumentClick)
 })
@@ -136,15 +184,10 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   padding: 1rem 3rem;
-  background: rgba(247, 245, 241, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-
-html.dark .topbar.knowledge-style {
-  background: rgba(247, 245, 241, 0.9);
-}
-
 .header-nav {
   display: flex;
   align-items: center;
