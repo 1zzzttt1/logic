@@ -4,35 +4,41 @@ import { SplitText } from 'gsap/SplitText'
 
 gsap.registerPlugin(SplitText)
 
-// 关键：模块级变量
-// 当前这次网页运行里，只要播过一次，就记住
-let hasPlayedHeroRevealInRuntime = false
-
 export function useHeroTitleReveal() {
   let split: SplitText | null = null
   let splitSubtitle: SplitText | null = null
   let splitCtaSpan: SplitText | null = null
   let tl: gsap.core.Timeline | null = null
+  let arrowLoopTween: gsap.core.Tween | null = null
 
-  async function playHeroTitleReveal(force = false) {
-    // 已经播过且不是强制播放，就直接跳过
-    if (hasPlayedHeroRevealInRuntime && !force) {
-      return
-    }
-
+  async function playHeroTitleReveal() {
     await nextTick()
     await document.fonts.ready
 
+    const heroContent = document.querySelector('.hero-content')
     const heroTitle = document.querySelector('.hero-title')
     const heroSubtitle = document.querySelector('.hero-subtitle')
+    const ctaBtn = document.querySelector('.cta-btn')
     const ctaSpan = document.querySelector('.cta-btn span:nth-child(1)')
+    const ctaArrow = document.querySelector('.cta-btn span:last-child')
 
-    if (!heroTitle || !heroSubtitle || !ctaSpan) return
+    if (!heroContent || !heroTitle || !heroSubtitle || !ctaBtn || !ctaSpan || !ctaArrow) {
+      return
+    }
 
-    // 先还原，避免重复拆分
+    tl?.kill()
+    tl = null
+
+    arrowLoopTween?.kill()
+    arrowLoopTween = null
+
     split?.revert()
     splitSubtitle?.revert()
     splitCtaSpan?.revert()
+
+    gsap.set(heroContent, {
+      autoAlpha: 0,
+    })
 
     split = SplitText.create(heroTitle, {
       type: 'lines,chars',
@@ -54,87 +60,28 @@ export function useHeroTitleReveal() {
     })
 
     if (!split.chars?.length || !splitSubtitle.chars?.length || !splitCtaSpan.chars?.length) {
+      gsap.set(heroContent, { autoAlpha: 1 })
+      heroContent.classList.remove('hero-content--masked')
       return
     }
 
-    gsap.set(split.chars, {
-      y: '-100%',
+    gsap.set(split.chars, { y: '-100%' })
+    gsap.set(splitSubtitle.chars, { y: '100%' })
+    gsap.set(ctaBtn, { scale: 0 })
+    gsap.set(splitCtaSpan.chars, { x: '-100%' })
+    gsap.set(ctaArrow, { x: '-50%', opacity: 0 })
+
+    heroContent.classList.remove('hero-content--masked')
+
+    gsap.set(heroContent, {
+      autoAlpha: 1,
+      visibility: 'visible',
     })
 
-    gsap.set(splitSubtitle.chars, {
-      y: '100%',
-    })
-
-    gsap.set('.cta-btn', {
-      scale: 0,
-    })
-
-    gsap.set(splitCtaSpan.chars, {
-      x: '-100%',
-    })
-
-    gsap.set('.cta-btn span:last-child', {
-      x: '-50%',
-      opacity: 0,
-    })
-
-    tl?.kill()
     tl = gsap.timeline({
       onComplete: () => {
-        hasPlayedHeroRevealInRuntime = true
-      },
-    })
-
-    tl.to(
-      split.chars,
-      {
-        y: '0%',
-        duration: 1.5,
-        ease: 'power4.out',
-      },
-      '+=5.25'
-    )
-      .to(
-        splitSubtitle.chars,
-        {
-          y: '0%',
-          duration: 1.5,
-          ease: 'power4.out',
-        },
-        '<'
-      )
-      .to(
-        '.cta-btn',
-        {
-          scale: 1,
-          duration: 1.5,
-          ease: 'power4.out',
-        },
-        '<'
-      )
-      .to(
-        splitCtaSpan.chars,
-        {
-          x: '0%',
-          stagger: 0.1,
-          duration: 1,
-          ease: 'power4.inOut',
-        },
-        '<'
-      )
-      .to(
-        '.cta-btn span:last-child',
-        {
-          x: '0%',
-          opacity: 1,
-          duration: 1,
-          ease: 'power4.inOut',
-        },
-        '-=0.8'
-      )
-      .add(() => {
-        gsap.fromTo(
-          '.cta-btn span:last-child',
+        arrowLoopTween = gsap.fromTo(
+          ctaArrow,
           { x: '-10%', opacity: 0 },
           {
             x: '30%',
@@ -145,12 +92,62 @@ export function useHeroTitleReveal() {
             repeatDelay: 0.4,
           }
         )
-      })
+      },
+    })
+
+    tl.to(split.chars, {
+      y: '0%',
+      duration: 1.5,
+      ease: 'power4.out',
+      stagger: 0.02,
+    })
+      .to(
+        splitSubtitle.chars,
+        {
+          y: '0%',
+          duration: 1.2,
+          ease: 'power4.out',
+          stagger: 0.02,
+        },
+        '<+0.1'
+      )
+      .to(
+        ctaBtn,
+        {
+          scale: 1,
+          duration: 1.2,
+          ease: 'power4.out',
+        },
+        '<+0.1'
+      )
+      .to(
+        splitCtaSpan.chars,
+        {
+          x: '0%',
+          stagger: 0.06,
+          duration: 0.8,
+          ease: 'power4.out',
+        },
+        '<+0.1'
+      )
+      .to(
+        ctaArrow,
+        {
+          x: '0%',
+          opacity: 1,
+          duration: 0.8,
+          ease: 'power4.out',
+        },
+        '-=0.45'
+      )
   }
 
   function cleanup() {
     tl?.kill()
     tl = null
+
+    arrowLoopTween?.kill()
+    arrowLoopTween = null
 
     split?.revert()
     splitSubtitle?.revert()

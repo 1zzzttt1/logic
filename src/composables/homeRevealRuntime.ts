@@ -1,13 +1,19 @@
-let playedInCurrentRuntime = false
+import { ref } from 'vue'
 
-export function hasHomeRevealPlayedInRuntime() {
-  return playedInCurrentRuntime
+const preloaderPlayedInRuntime = ref(false)
+const heroGateReady = ref(false)
+
+export function useHomeRevealRuntime() {
+  return {
+    preloaderPlayedInRuntime,
+    heroGateReady,
+  }
 }
 
-export function markHomeRevealPlayedInRuntime() {
-  playedInCurrentRuntime = true
+export function markPreloaderPlayedInRuntime() {
+  preloaderPlayedInRuntime.value = true
 }
 
-export function resetHomeRevealPlayedInRuntime() {
-  playedInCurrentRuntime = false
+export function setHeroGateReady(value: boolean) {
+  heroGateReady.value = value
 }

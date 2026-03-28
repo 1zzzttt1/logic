@@ -1,30 +1,51 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHeroTitleReveal } from '@/composables/useHomeAnimate'
+import { useHomeRevealRuntime } from '@/composables/homeRevealRuntime'
 
 const router = useRouter()
-const { playHeroTitleReveal } = useHeroTitleReveal()
+const { playHeroTitleReveal, cleanup } = useHeroTitleReveal()
+const { heroGateReady, preloaderPlayedInRuntime } = useHomeRevealRuntime()
 
 const goToKnowledge = () => {
   router.push('/knowledge')
 }
 
+let stopWatch: (() => void) | null = null
+
 onMounted(async () => {
-  await playHeroTitleReveal()
+  if (preloaderPlayedInRuntime.value) {
+    await playHeroTitleReveal()
+    return
+  }
+
+  stopWatch = watch(
+    () => heroGateReady.value,
+    async (ready) => {
+      if (ready) {
+        await playHeroTitleReveal()
+      }
+    },
+    { immediate: true }
+  )
+})
+
+onBeforeUnmount(() => {
+  stopWatch?.()
+  stopWatch = null
+  cleanup()
 })
 </script>
 
 <template>
- 
-
   <main class="hero-wrap">
-    <div class="hero-content">
+    <div class="hero-content hero-content--masked">
       <div class="light-streak"></div>
 
       <h1 class="hero-title">
         探索AI <br>
-       理解未来
+        理解未来
       </h1>
 
       <p class="hero-subtitle">
@@ -136,11 +157,21 @@ onMounted(async () => {
   flex-direction: column;
   position: relative;
   z-index: 10;
- 
 }
 
 .hero-content {
   width: 100%;
+}
+
+.hero-content--masked {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.hero-content--masked .hero-title,
+.hero-content--masked .hero-subtitle,
+.hero-content--masked .cta-btn {
+  opacity: 0;
 }
 
 .light-streak {
@@ -257,15 +288,13 @@ html.dark .cta-btn:hover {
 }
 
 @media (max-width: 767px) {
-  .preloader-logo h1{
+  .preloader-logo h1 {
     font-size: 2rem;
   }
 
-
   .preloader-footer p {
     font-size: 1rem;
-   }
-
+  }
 
   .hero-wrap {
     flex: 1 1 auto;
@@ -297,13 +326,11 @@ html.dark .cta-btn:hover {
     color: #181816;
   }
 
-  .hero-title 
-   {
+  .hero-title {
     display: flex;
     flex-direction: column;
     align-items: start;
   }
-   
 
   html.dark .hero-title {
     color: #f4f6fa;
@@ -316,7 +343,6 @@ html.dark .cta-btn:hover {
     text-align: left;
     font-weight: 400;
     color: #5e5c57;
-    
   }
 
   html.dark .hero-subtitle {

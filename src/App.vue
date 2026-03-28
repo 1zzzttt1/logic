@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useHomeReveal } from '@/composables/useHomeReveal'
-import PreloaderReveal from './components/PreloaderReveal.vue'
+import PreloaderReveal from '@/components/PreloaderReveal.vue'
 import { useRoute } from 'vue-router'
-import AppHeader from './components/AppHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 const route = useRoute()
 const isKnowledgePage = computed(() => route.path === '/knowledge')
