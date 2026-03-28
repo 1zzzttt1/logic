@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
-
-const route = useRoute()
 
 // 侧边栏展开/收起状态
 const isSidebarCollapsed = ref(false)
@@ -18,11 +15,13 @@ const showMobileMenu = ref(false)
 const openMobileMenu = () => {
   showMobileMenu.value = true
   document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
 }
 
 const closeMobileMenu = () => {
   showMobileMenu.value = false
   document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
 }
 
 // 当前选中的分类和文章
@@ -31,19 +30,20 @@ const selectedArticle = ref<KnowledgeArticle | null>(null)
 
 // 动态加载的侧边栏导航数据
 const sidebarNav = computed(() => {
-  const nav = {
+  return {
     series: '知识库',
-    groups: knowledgeData.map((category, idx) => ({
+    groups: knowledgeData.map((category) => ({
       title: category.name,
       expanded: category.id === selectedCategory.value,
-      items: category.articles.map((article, articleIdx) => ({
+      items: category.articles.map((article) => ({
         name: article.title,
         path: `#${category.id}/${article.id}`,
-        active: selectedCategory.value === category.id && selectedArticle.value?.id === article.id
+        active:
+          selectedCategory.value === category.id &&
+          selectedArticle.value?.id === article.id
       }))
     }))
   }
-  return nav
 })
 
 // 切换分组展开/收起
@@ -51,7 +51,6 @@ const toggleGroup = (index: number) => {
   const category = knowledgeData[index]
   if (category) {
     selectedCategory.value = category.id
-    // 默认选择第一个文章
     if (category.articles.length > 0) {
       selectedArticle.value = category.articles[0] || null
     } else {
@@ -64,8 +63,12 @@ const toggleGroup = (index: number) => {
 const selectArticle = (categoryId: string, articleId: string) => {
   selectedCategory.value = categoryId
   const articles = getArticlesByCategory(categoryId)
-  const article = articles.find(a => a.id === articleId)
+  const article = articles.find((a) => a.id === articleId)
   selectedArticle.value = article || null
+
+  nextTick(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  })
 }
 
 // 从路径解析分类和文章 ID
@@ -83,9 +86,11 @@ function generateToc(content: string): { name: string; id: string; active: boole
   const headings = content.match(/^#{2,3}\s+(.+)$/gm) || []
 
   headings.forEach((heading, index) => {
-    const level = heading.match(/^#{2,3}/)?.[0].length || 2
     const text = heading.replace(/^#{2,3}\s+/, '')
-    const id = text.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const id = text
+      .toLowerCase()
+      .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
 
     toc.push({ name: text, id, active: index === 0 })
   })
@@ -99,47 +104,41 @@ const renderMarkdown = (content: string): string => {
 
   let html = content
 
-  // 标题 - 添加 ID 用于锚点跳转
-  html = html.replace(/^### (.*$)/gim, (match, p1) => {
-    const id = p1.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  html = html.replace(/^### (.*$)/gim, (_match, p1) => {
+    const id = p1
+      .toLowerCase()
+      .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
     return `<h3 class="section-title" id="${id}">${p1}</h3>`
   })
-  html = html.replace(/^## (.*$)/gim, (match, p1) => {
-    const id = p1.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  html = html.replace(/^## (.*$)/gim, (_match, p1) => {
+    const id = p1
+      .toLowerCase()
+      .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
     return `<h2 class="section-title" id="${id}">${p1}</h2>`
   })
+
   html = html.replace(/^# (.*$)/gim, '<h1 class="section-title">$1</h1>')
-
-  // 粗体
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-
-  // 斜体
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
 
-  // 列表
   html = html.replace(/^- (.*$)/gim, '<li>$1</li>')
   html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
 
-  // 数字列表
   html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
-
-  // 引用
   html = html.replace(/^> (.*$)/gim, '<blockquote class="expert-tip"><p>$1</p></blockquote>')
 
-  // 换行
   html = html.replace(/\n\n/g, '</p><p class="section-text">')
   html = html.replace(/\n/g, '<br>')
-
-  // 包装段落
   html = '<p class="section-text">' + html + '</p>'
-
-  // 清理空段落
   html = html.replace(/<p class="section-text"><\/p>/g, '')
 
   return html
 }
 
-// TOC 数据 - 动态生成
+// TOC 数据
 const tocItems = ref<{ name: string; id: string; active: boolean }[]>([])
 
 // 滚动到锚点
@@ -155,39 +154,41 @@ const scrollToAnchor = (id: string) => {
       behavior: 'smooth'
     })
   }
+
+  closeMobileMenu()
 }
 
 // 滚动监听 - 使用 Intersection Observer 精确检测
 let observer: IntersectionObserver | null = null
 
 const setupObserver = () => {
-  // 先断开之前的 observer
   observer?.disconnect()
 
-  // 从当前文章内容生成 TOC
   if (selectedArticle.value?.content) {
     const newToc = generateToc(selectedArticle.value.content)
     if (newToc.length > 0) {
       tocItems.value = newToc
+    } else {
+      tocItems.value = []
     }
+  } else {
+    tocItems.value = []
   }
 
-  const sectionIds = tocItems.value.map(item => item.id).filter(id => id)
-
+  const sectionIds = tocItems.value.map((item) => item.id).filter(Boolean)
   if (sectionIds.length === 0) return
 
   observer = new IntersectionObserver(
     (entries) => {
-      // 找到所有可见的章节，按顶部位置排序
       const visibleEntries = entries
-        .filter(entry => entry.isIntersecting)
+        .filter((entry) => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
 
       if (visibleEntries.length > 0) {
         const firstEntry = visibleEntries[0]
-        if (!firstEntry) return
-        const activeId = firstEntry.target.id
-        tocItems.value = tocItems.value.map(item => ({
+        const activeId = firstEntry?.target.id
+
+        tocItems.value = tocItems.value.map((item) => ({
           ...item,
           active: item.id === activeId
         }))
@@ -200,39 +201,36 @@ const setupObserver = () => {
     }
   )
 
-  sectionIds.forEach(id => {
+  sectionIds.forEach((id) => {
     const element = document.getElementById(id)
-    if (element) {
-      observer?.observe(element)
-    }
+    if (element) observer?.observe(element)
   })
+}
+
+const handleScroll = () => {
+  // 由 IntersectionObserver 处理
 }
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
-  // 初始化选择第一个分类的第一篇文章
+
   const firstCategory = knowledgeData[0]
   if (firstCategory && firstCategory.articles.length > 0 && firstCategory.articles[0]) {
     selectedCategory.value = firstCategory.id
     selectedArticle.value = firstCategory.articles[0]
   }
-  // 延迟设置 observer 确保 DOM 已渲染
+
   setTimeout(setupObserver, 100)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   observer?.disconnect()
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
 })
 
-// 保留旧的 handleScroll 作为后备
-const handleScroll = () => {
-  // 由 IntersectionObserver 处理
-}
-
-// 监听文章变化，重新设置 observer
 watch(selectedArticle, () => {
-  // 使用 nextTick 确保 DOM 更新后再设置 observer
   nextTick(() => {
     setTimeout(setupObserver, 200)
   })
@@ -240,7 +238,7 @@ watch(selectedArticle, () => {
 
 // 当前分类下的所有文章（按 order 排序）
 const currentCategoryArticles = computed(() => {
-  const category = knowledgeData.find(c => c.id === selectedCategory.value)
+  const category = knowledgeData.find((c) => c.id === selectedCategory.value)
   return category?.articles || []
 })
 
@@ -248,20 +246,16 @@ const currentCategoryArticles = computed(() => {
 const prevArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || articles.length === 0) return null
-  const prevArticles = articles.filter(a => a.order < selectedArticle.value!.order)
-  return prevArticles.length > 0
-    ? prevArticles[prevArticles.length - 1]
-    : null
+  const prevArticles = articles.filter((a) => a.order < selectedArticle.value!.order)
+  return prevArticles.length > 0 ? prevArticles[prevArticles.length - 1] : null
 })
 
 // 下一章
 const nextArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || articles.length === 0) return null
-  const nextArticles = articles.filter(a => a.order > selectedArticle.value!.order)
-  return nextArticles.length > 0
-    ? nextArticles[0]
-    : null
+  const nextArticles = articles.filter((a) => a.order > selectedArticle.value!.order)
+  return nextArticles.length > 0 ? nextArticles[0] : null
 })
 
 // 跳转上一章
@@ -281,49 +275,76 @@ const goToNextArticle = () => {
 
 <template>
   <div class="knowledge-page" :class="{ collapsed: isSidebarCollapsed }">
-    <!-- 移动端菜单抽屉 -->
-    <div class="mobile-menu-overlay" :class="{ active: showMobileMenu }" @click="closeMobileMenu">
-      <div class="mobile-menu-drawer" @click.stop>
-        <div class="mobile-menu-header">
-          <h3 class="sidebar-title">教程目录</h3>
-          <button class="mobile-menu-close" @click="closeMobileMenu">
-            <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-        </div>
-        <nav class="sidebar-nav">
-          <div v-for="(group, index) in sidebarNav.groups" :key="group.title" class="nav-group">
-            <div class="group-header" @click="toggleGroup(index)">
-              <span class="group-title">{{ group.title }}</span>
-              <span class="material-symbols-outlined group-toggle-icon" :class="{ expanded: group.expanded }">
-                expand_more
-              </span>
-            </div>
-            <div class="group-items" :class="{ collapsed: !group.expanded }">
-              <a
-                v-for="item in group.items"
-                :key="item.name"
-                :href="item.path"
-                class="nav-item"
-                :class="{ active: item.active }"
-                @click.prevent="handleNavClick(item.path)"
-              >
-                {{ item.name }}
-              </a>
-            </div>
+    <Teleport to="body">
+      <!-- 移动端菜单抽屉 -->
+      <div
+        class="mobile-menu-overlay"
+        :class="{ active: showMobileMenu }"
+        @click="closeMobileMenu"
+      >
+        <div class="mobile-menu-drawer" @click.stop>
+          <div class="mobile-menu-header">
+            <h3 class="sidebar-title">教程目录</h3>
+            <button class="mobile-menu-close" @click="closeMobileMenu">
+              <span class="material-symbols-outlined">arrow_back</span>
+            </button>
           </div>
-        </nav>
-      </div>
-    </div>
 
-    <!-- 移动端悬浮按钮 -->
-    <button class="mobile-menu-fab" @click="openMobileMenu">
-      <span>目录</span>
-    </button>
+          <nav class="sidebar-nav">
+            <div
+              v-for="(group, index) in sidebarNav.groups"
+              :key="group.title"
+              class="nav-group"
+            >
+              <div class="group-header" @click="toggleGroup(index)">
+                <span class="group-title">{{ group.title }}</span>
+                <span
+                  class="material-symbols-outlined group-toggle-icon"
+                  :class="{ expanded: group.expanded }"
+                >
+                  expand_more
+                </span>
+              </div>
+
+              <div class="group-items" :class="{ collapsed: !group.expanded }">
+                <a
+                  v-for="item in group.items"
+                  :key="item.name"
+                  :href="item.path"
+                  class="nav-item"
+                  :class="{ active: item.active }"
+                  @click.prevent="handleNavClick(item.path)"
+                >
+                  {{ item.name }}
+                </a>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      <!-- 移动端悬浮按钮 -->
+      <button
+        v-show="!showMobileMenu"
+        class="mobile-menu-fab"
+        type="button"
+        @click="openMobileMenu"
+      >
+        <span>目录</span>
+      </button>
+    </Teleport>
+
     <div class="knowledge-content">
       <!-- 左侧教程目录 -->
       <aside class="sidebar-left" :class="{ collapsed: isSidebarCollapsed }">
-        <button class="collapse-btn" @click="toggleSidebar" :title="isSidebarCollapsed ? '展开菜单' : '收起菜单'">
-          <span class="material-symbols-outlined">{{ isSidebarCollapsed ? 'chevron_right' : 'chevron_left' }}</span>
+        <button
+          class="collapse-btn"
+          @click="toggleSidebar"
+          :title="isSidebarCollapsed ? '展开菜单' : '收起菜单'"
+        >
+          <span class="material-symbols-outlined">
+            {{ isSidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
+          </span>
         </button>
 
         <template v-if="!isSidebarCollapsed">
@@ -336,10 +357,14 @@ const goToNextArticle = () => {
             <div v-for="(group, index) in sidebarNav.groups" :key="group.title" class="nav-group">
               <div class="group-header" @click="toggleGroup(index)">
                 <span class="group-title">{{ group.title }}</span>
-                <span class="material-symbols-outlined group-toggle-icon" :class="{ expanded: group.expanded }">
+                <span
+                  class="material-symbols-outlined group-toggle-icon"
+                  :class="{ expanded: group.expanded }"
+                >
                   expand_more
                 </span>
               </div>
+
               <div class="group-items" :class="{ collapsed: !group.expanded }">
                 <a
                   v-for="item in group.items"
@@ -363,7 +388,7 @@ const goToNextArticle = () => {
           <nav class="breadcrumb">
             <span>知识库</span>
             <span>/</span>
-            <span>{{ knowledgeData.find(c => c.id === selectedCategory)?.name || '' }}</span>
+            <span>{{ knowledgeData.find((c) => c.id === selectedCategory)?.name || '' }}</span>
             <span>/</span>
             <span class="current">{{ selectedArticle?.title || '' }}</span>
           </nav>
@@ -378,7 +403,6 @@ const goToNextArticle = () => {
         </header>
 
         <article class="article-body">
-          <!-- 顶部大图 -->
           <div class="article-hero">
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuACt5DzmuKmB7orWdqxYZ19-aOnV1mAKRqrfTCkWy9lU5FFhisLITW9MZwbULVt5D8_n_3Nv7bDq8HdlTO9cGWTYxF2nZ_P5ra7JVUgnXjvwkq6y4AYzZ-ru8vL0zncKqeYm435wjXkc724Jl6194zopiDi8tN13DRqB_G5tRoTGKLtys5yZlU8joG6OmcvGuNUcUKIy_MdNTqkVumZFM9Cj-wMxg6SObx19QjH6sOVT3W5Z0u0fV_L6JaCifBHd0b-5oi70ZyOsSo"
@@ -386,24 +410,28 @@ const goToNextArticle = () => {
             />
           </div>
 
-          <!-- 文章内容 -->
-          <div v-if="selectedArticle" class="markdown-content" v-html="renderMarkdown(selectedArticle.content)"></div>
+          <div
+            v-if="selectedArticle"
+            class="markdown-content"
+            v-html="renderMarkdown(selectedArticle.content)"
+          ></div>
+
           <div v-else class="empty-content">
             <p>请从左侧菜单选择文章</p>
           </div>
         </article>
 
-        <!-- 底部导航 -->
         <footer class="article-footer">
           <a v-if="prevArticle" href="#" class="nav-prev" @click.prevent="goToPrevArticle">
-            <span class="nav-label">PREVIOUS</span>
+            <span class="nav-label">上一章</span>
             <div class="nav-link-text">
               <span class="material-symbols-outlined">arrow_back</span>
               <span>{{ prevArticle.title }}</span>
             </div>
           </a>
+
           <a v-if="nextArticle" href="#" class="nav-next" @click.prevent="goToNextArticle">
-            <span class="nav-label">NEXT</span>
+            <span class="nav-label">下一章</span>
             <div class="nav-link-text">
               <span>{{ nextArticle.title }}</span>
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -435,6 +463,7 @@ const goToNextArticle = () => {
 <style scoped>
 .knowledge-page {
   min-height: 100vh;
+  position: relative;
 }
 
 /* 主内容区 */
@@ -575,10 +604,6 @@ html.dark .group-title {
   font-size: 18px;
   color: #7A766F;
   transition: transform 0.2s ease;
-}
-
-html.dark .group-toggle-icon {
-  color: #a6afbf;
 }
 
 html.dark .group-toggle-icon {
@@ -933,6 +958,16 @@ html.dark .article-footer {
   margin-bottom: 0.25rem;
   letter-spacing: 0.1em;
 }
+.nav-prev .nav-label {
+  text-align: right;
+}
+
+.nav-next .nav-label {
+  text-align: left;
+}
+
+
+
 
 .nav-link-text {
   display: flex;
@@ -1034,17 +1069,20 @@ html.dark .toc-item.active {
 
 /* 滚动条 */
 .sidebar-left::-webkit-scrollbar,
-.sidebar-right::-webkit-scrollbar {
+.sidebar-right::-webkit-scrollbar,
+.mobile-menu-drawer::-webkit-scrollbar {
   width: 4px;
 }
 
 .sidebar-left::-webkit-scrollbar-track,
-.sidebar-right::-webkit-scrollbar-track {
+.sidebar-right::-webkit-scrollbar-track,
+.mobile-menu-drawer::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .sidebar-left::-webkit-scrollbar-thumb,
-.sidebar-right::-webkit-scrollbar-thumb {
+.sidebar-right::-webkit-scrollbar-thumb,
+.mobile-menu-drawer::-webkit-scrollbar-thumb {
   background: #DDD7CC;
   border-radius: 10px;
 }
@@ -1052,38 +1090,39 @@ html.dark .toc-item.active {
 /* 移动端菜单抽屉 */
 .mobile-menu-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  inset: 0;
+  background: rgba(15, 18, 24, 0.42);
+  z-index: 2000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  pointer-events: none;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
 }
 
 .mobile-menu-overlay.active {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .mobile-menu-drawer {
   position: absolute;
   top: 0;
   left: 0;
-  width: 80%;
-  max-width: 20rem;
-  height: 100%;
+  width: min(82vw, 20rem);
+  height: 100dvh;
   background: #FDFCFB;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
   overflow-y: auto;
-  padding: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.12);
 }
 
 html.dark .mobile-menu-drawer {
   background: #1b2739;
+  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
 }
 
 .mobile-menu-overlay.active .mobile-menu-drawer {
@@ -1129,44 +1168,45 @@ html.dark .mobile-menu-close:hover {
   background: rgba(95, 110, 138, 0.2);
 }
 
-/* 移动端悬浮按钮 */
+/* 移动端悬浮目录按钮 */
 .mobile-menu-fab {
   display: none;
   position: fixed;
-  bottom: 6rem;
   right: 2rem;
-  width: auto;
-  min-width: 4rem;
+  bottom: 5rem;
+  min-width: 4.5rem;
   height: 3rem;
   padding: 0 1.25rem;
-  border-radius: 1.5rem;
-  background: #5F6E8A;
   border: none;
-  color: white;
+  border-radius: 999px;
+  background: #5F6E8A;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 998;
-  transition: transform 0.2s ease, background 0.2s ease;
+  z-index: 2100;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mobile-menu-fab:hover {
-  transform: scale(1.05);
+  transform: translateY(-2px);
   background: #475671;
 }
 
 .mobile-menu-fab:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .mobile-menu-fab span {
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1;
 }
 
 html.dark .mobile-menu-fab {
   background: #a6b9d4;
   color: #1b2739;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 html.dark .mobile-menu-fab:hover {
@@ -1175,7 +1215,7 @@ html.dark .mobile-menu-fab:hover {
 
 @media (max-width: 767px) {
   .mobile-menu-fab {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
   }
