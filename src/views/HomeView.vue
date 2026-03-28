@@ -51,7 +51,7 @@ onActivated(async () => {
 
     <div class="preloader-content">
       <div class="preloader-footer">
-        <p>Spaces unfold in light and shadow...</p>
+        <p>清晰，从这里开始</p>
       </div>
     </div>
   </template>
@@ -122,7 +122,7 @@ onActivated(async () => {
 .preloader-logo h1 {
   position: relative;
   color: var(--base-300);
-  font-size: 3rem;
+  font-size: 4.5rem;
   font-weight: 500;
   line-height: 14;
 }
@@ -148,8 +148,12 @@ onActivated(async () => {
   bottom: 4rem;
   left: 50%;
   transform: translate(-50%);
-  width: 30%;
+  width: 50%;
   text-align: center;
+}
+
+.preloader-footer p {
+  font-size: 1.5rem;
 }
 
 .preloader-footer p {
@@ -290,6 +294,16 @@ html.dark .cta-btn:hover {
 }
 
 @media (max-width: 767px) {
+  .preloader-logo h1{
+    font-size: 2rem;
+  }
+
+
+  .preloader-footer p {
+    font-size: 1rem;
+   }
+
+
   .hero-wrap {
     flex: 1 1 auto;
     min-height: 0;

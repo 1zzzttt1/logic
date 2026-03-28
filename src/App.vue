@@ -20,6 +20,10 @@ const isKnowledgePage = route.path === '/knowledge'
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
+
+
+
+
 :root {
   color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -71,9 +75,11 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+   
 }
 
 body {
+  
   font-family: 'Manrope', 'Noto Sans SC', sans-serif;
   color: #1f1f1c;
   background:
@@ -95,6 +101,7 @@ body {
   transition: background 0.45s ease, color 0.35s ease;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  
 }
 
 .knowledge-bg body {
@@ -154,6 +161,7 @@ html.dark body {
   position: relative;
   min-height: 100vh;
   isolation: isolate;
+ 
 }
 
 .page-content {
@@ -213,6 +221,8 @@ html.dark .ambient-overlay::after {
 ::selection {
   background: rgba(107, 123, 152, 0.2);
 }
+
+
 
 /* Mobile styles */
 @media (max-width: 767px) {
