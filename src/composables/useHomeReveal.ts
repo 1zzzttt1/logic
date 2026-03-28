@@ -61,6 +61,7 @@ export function useHomeReveal() {
       gsap.set(splits.logoChars.chars, { x: '100%' })
     }
 
+
     const verticalTargets = [...(splits.footerLines?.lines ?? [])]
 
     if (verticalTargets.length) {
@@ -77,6 +78,7 @@ export function useHomeReveal() {
     gsap.set('.preloader-content', { opacity: 1 })
   }
 
+  // 进度条动画
   function animateProgress(duration = 3) {
     const progressTl = gsap.timeline()
     const counterSteps = 5

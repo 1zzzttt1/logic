@@ -109,7 +109,7 @@ body {
   background: #F7F5F1 !important;
 }
 
-html.dark body {
+html.dark body .site-shell{
   color: #f4f6fa;
   background:
     linear-gradient(

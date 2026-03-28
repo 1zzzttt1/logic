@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { ref,  } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useHomeReveal } from '@/composables/useHomeReveal'
+import { useHeroTitleReveal } from '@/composables/useHomeAnimate'
 
 const router = useRouter()
-const { playHomeReveal } = useHomeReveal()
-
-const showPreloader = ref(false)
+const { playHeroTitleReveal } = useHeroTitleReveal()
 
 const goToKnowledge = () => {
   router.push('/knowledge')
 }
 
+onMounted(async () => {
+  await playHeroTitleReveal()
+})
 </script>
 
 <template>
@@ -22,8 +23,8 @@ const goToKnowledge = () => {
       <div class="light-streak"></div>
 
       <h1 class="hero-title">
-        探索AI
-        <div>理解未来</div>
+        探索AI <br>
+       理解未来
       </h1>
 
       <p class="hero-subtitle">
@@ -208,8 +209,8 @@ html.dark .hero-subtitle {
   background: #111111;
   color: #ffffff;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
-  transition: all 0.28s ease;
   margin: 0 auto;
+  will-change: transform;
 }
 
 html.dark .cta-btn {
@@ -280,6 +281,7 @@ html.dark .cta-btn:hover {
   .hero-content {
     width: 100%;
     max-width: none;
+    align-items: center;
   }
 
   .light-streak {
@@ -292,9 +294,16 @@ html.dark .cta-btn:hover {
     margin-bottom: 18px;
     letter-spacing: 0.08em;
     line-height: 1.1;
-    text-align: left;
     color: #181816;
   }
+
+  .hero-title 
+   {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+  }
+   
 
   html.dark .hero-title {
     color: #f4f6fa;
@@ -307,6 +316,7 @@ html.dark .cta-btn:hover {
     text-align: left;
     font-weight: 400;
     color: #5e5c57;
+    
   }
 
   html.dark .hero-subtitle {
