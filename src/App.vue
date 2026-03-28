@@ -195,7 +195,7 @@ html.dark body .site-shell {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 100vh;
 }
 
 .ambient-overlay {
@@ -273,8 +273,8 @@ html.dark .ambient-overlay::after {
 
   .page-content {
     flex: none;
-    display: block;
-    min-height: auto;
+    display: flex;
+    min-height: 88svh;
     overflow: visible;
   }
 
