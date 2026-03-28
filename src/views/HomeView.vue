@@ -1,40 +1,60 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onActivated, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHomeReveal } from '@/composables/useHomeReveal'
+import { hasHomeRevealPlayedInRuntime } from '@/composables/homeRevealRuntime'
 
-const { initHomeReveal } = useHomeReveal()
 const router = useRouter()
+const { playHomeReveal } = useHomeReveal()
+
+const showPreloader = ref(false)
 
 const goToKnowledge = () => {
   router.push('/knowledge')
 }
 
+function syncPreloaderVisibility() {
+  showPreloader.value = !hasHomeRevealPlayedInRuntime()
+}
+
+async function startRevealIfNeeded() {
+  syncPreloaderVisibility()
+
+  if (!showPreloader.value) return
+
+  await nextTick()
+
+  await playHomeReveal(() => {
+    showPreloader.value = false
+  })
+}
+
 onMounted(async () => {
-  await initHomeReveal()
+  await startRevealIfNeeded()
+})
+
+onActivated(async () => {
+  await startRevealIfNeeded()
 })
 </script>
 
 <template>
-   <!-- 预加载器 -->
-   <div class="preloader-progress">
-     <div class="preloader-progress-bar"></div>
-     <div class="preloader-logo">
-       <h1>Logic</h1>
-     </div>
-   </div>
+  <template v-if="showPreloader">
+    <div class="preloader-progress">
+      <div class="preloader-progress-bar"></div>
+      <div class="preloader-logo">
+        <h1>Logic</h1>
+      </div>
+    </div>
 
-   <!-- 遮罩层 -->
-   <div class="preloader-mask"></div>
+    <div class="preloader-mask"></div>
 
-   <!-- 预加载器内容 -->
-   <div class="preloader-content">
-     <div class="preloader-footer">
-       <p>Spaces unfold in light and shadow...</p>
-     </div>
-   </div>
-
-
+    <div class="preloader-content">
+      <div class="preloader-footer">
+        <p>Spaces unfold in light and shadow...</p>
+      </div>
+    </div>
+  </template>
 
   <main class="hero-wrap">
     <div class="hero-content">
@@ -59,10 +79,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
-
-
-
 .preloader-progress,
 .preloader-mask,
 .preloader-content {
@@ -111,7 +127,6 @@ onMounted(async () => {
   line-height: 14;
 }
 
-
 .preloader-mask {
   background-color: var(--base-100);
   -webkit-mask: linear-gradient(var(--base-300), var(--base-300)),
@@ -149,11 +164,6 @@ onMounted(async () => {
   margin-bottom: -0.2em;
   will-change: transform;
 }
-
-
-
-
-
 
 .hero-wrap {
   display: flex;
@@ -260,7 +270,6 @@ html.dark .cta-btn:hover {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Desktop styles */
 @media (min-width: 768px) {
   .hero-wrap {
     min-height: calc(100vh - 106px);
@@ -280,7 +289,6 @@ html.dark .cta-btn:hover {
   }
 }
 
-/* Mobile styles */
 @media (max-width: 767px) {
   .hero-wrap {
     flex: 1 1 auto;

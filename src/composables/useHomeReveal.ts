@@ -1,6 +1,10 @@
 import { nextTick, onBeforeUnmount } from 'vue'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
+import {
+  hasHomeRevealPlayedInRuntime,
+  markHomeRevealPlayedInRuntime,
+} from '@/composables/homeRevealRuntime'
 
 gsap.registerPlugin(SplitText)
 
@@ -17,7 +21,6 @@ type SplitMap = Record<string, SplitText>
 export function useHomeReveal() {
   const splits: SplitMap = {}
   let tl: gsap.core.Timeline | null = null
-  let isInitialized = false
 
   function createSplitTexts(elements: SplitElementItem[]) {
     elements.forEach(({ key, selector, type }) => {
@@ -50,32 +53,20 @@ export function useHomeReveal() {
 
     const verticalTargets = [
       ...(splits.footerLines?.lines ?? []),
-      ...(splits.headerChars?.chars ?? []),
-      ...(splits.heroFooterH3?.lines ?? []),
-      ...(splits.heroFooterP?.lines ?? []),
-      ...(splits.btnLabels?.lines ?? []),
     ]
 
     if (verticalTargets.length) {
       gsap.set(verticalTargets, { y: '100%' })
     }
 
+    gsap.set('.preloader-progress-bar', {
+      scaleX: 0,
+      transformOrigin: 'left center',
+    })
 
-
-    if (document.querySelector('.preloader-progress-bar')) {
-      gsap.set('.preloader-progress-bar', {
-        scaleX: 0,
-        transformOrigin: 'left center',
-      })
-    }
-
-    if (document.querySelector('.preloader-progress')) {
-      gsap.set('.preloader-progress', { opacity: 1 })
-    }
-
-    if (document.querySelector('.preloader-mask')) {
-      gsap.set('.preloader-mask', { scale: 1 })
-    }
+    gsap.set('.preloader-progress', { opacity: 1 })
+    gsap.set('.preloader-mask', { scale: 1, opacity: 1 })
+    gsap.set('.preloader-content', { opacity: 1 })
   }
 
   function animateProgress(duration = 3) {
@@ -101,12 +92,11 @@ export function useHomeReveal() {
     return progressTl
   }
 
-  async function initHomeReveal() {
-
- 
-
-
-    if (isInitialized) return tl
+  async function playHomeReveal(onFinished?: () => void) {
+    if (hasHomeRevealPlayedInRuntime()) {
+      onFinished?.()
+      return null
+    }
 
     await nextTick()
     await document.fonts.ready
@@ -119,12 +109,22 @@ export function useHomeReveal() {
     createSplitTexts(splitElements)
     setInitialStates()
 
+    /**
+     * 关键：
+     * 动画一开始就立刻标记，而不是等播放完
+     * 避免用户动画还没播完就跳走，回来后又重播
+     */
+    markHomeRevealPlayedInRuntime()
+
     tl?.kill()
 
     tl = gsap.timeline({
       delay: 0.5,
       defaults: {
         ease: 'power4.inOut',
+      },
+      onComplete: () => {
+        onFinished?.()
       },
     })
 
@@ -150,9 +150,7 @@ export function useHomeReveal() {
 
     tl.add(animateProgress(), '<')
 
-    if (document.querySelector('.preloader-progress')) {
-      tl.set('.preloader-progress', { backgroundColor: '#fff' })
-    }
+    tl.set('.preloader-progress', { backgroundColor: '#fff' })
 
     if (splits.logoChars?.chars?.length) {
       tl.to(
@@ -178,48 +176,48 @@ export function useHomeReveal() {
       )
     }
 
-    if (document.querySelector('.preloader-progress')) {
-      tl.to(
-        '.preloader-progress',
-        {
-          opacity: 0,
-          duration: 0.5,
-          ease: 'power3.out',
-        },
-        '-=0.25'
-      )
-    }
+    tl.to(
+      '.preloader-progress',
+      {
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out',
+      },
+      '-=0.25'
+    )
 
-    if (document.querySelector('.preloader-mask')) {
-      tl.to(
-        '.preloader-mask',
-        {
-          scale: 6,
-          duration: 2.5,
-          ease: 'power3.out',
-        },
-        '<'
-      )
-    }
+    tl.to(
+      '.preloader-content',
+      {
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out',
+      },
+      '<'
+    )
 
+    tl.to(
+      '.preloader-mask',
+      {
+        scale: 6,
+        opacity: 0,
+        duration: 2.5,
+        ease: 'power3.out',
+      },
+      '<'
+    )
 
-    isInitialized = true
-
- 
     return tl
   }
 
   function revertSplitTexts() {
-    Object.values(splits).forEach((split) => {
-      split.revert()
-    })
+    Object.values(splits).forEach((split) => split.revert())
   }
 
   function cleanup() {
     tl?.kill()
     tl = null
     revertSplitTexts()
-    isInitialized = false
   }
 
   onBeforeUnmount(() => {
@@ -227,8 +225,7 @@ export function useHomeReveal() {
   })
 
   return {
-    initHomeReveal,
+    playHomeReveal,
     cleanup,
-    splits,
   }
 }
