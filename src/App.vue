@@ -24,6 +24,9 @@ const isKnowledgePage = route.path === '/knowledge'
   color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --base-100: #181717;
+  --base-200: #292725;
+  --base-300: #f5f5f5;
 }
 
 html.dark {

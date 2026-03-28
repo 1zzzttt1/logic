@@ -1,14 +1,41 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useHomeReveal } from '@/composables/useHomeReveal'
 
+const { initHomeReveal } = useHomeReveal()
 const router = useRouter()
 
 const goToKnowledge = () => {
   router.push('/knowledge')
 }
+
+onMounted(async () => {
+  await initHomeReveal()
+})
 </script>
 
 <template>
+   <!-- 预加载器 -->
+   <div class="preloader-progress">
+     <div class="preloader-progress-bar"></div>
+     <div class="preloader-logo">
+       <h1>Logic</h1>
+     </div>
+   </div>
+
+   <!-- 遮罩层 -->
+   <div class="preloader-mask"></div>
+
+   <!-- 预加载器内容 -->
+   <div class="preloader-content">
+     <div class="preloader-footer">
+       <p>Spaces unfold in light and shadow...</p>
+     </div>
+   </div>
+
+
+
   <main class="hero-wrap">
     <div class="hero-content">
       <div class="light-streak"></div>
@@ -32,6 +59,102 @@ const goToKnowledge = () => {
 </template>
 
 <style scoped>
+
+
+
+
+.preloader-progress,
+.preloader-mask,
+.preloader-content {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100svh;
+  pointer-events: none;
+}
+
+.preloader-progress {
+  background-color: var(--base-200);
+  z-index: 14;
+  will-change: opacity;
+}
+
+.preloader-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 55%;
+  height: 100%;
+  background-color: var(--base-300);
+  transform: translateX(-50%) scaleX(0);
+  will-change: transform;
+  transform-origin: left;
+}
+
+.preloader-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  text-align: center;
+  mix-blend-mode: difference;
+  z-index: 15;
+}
+
+.preloader-logo h1 {
+  position: relative;
+  color: var(--base-300);
+  font-size: 3rem;
+  font-weight: 500;
+  line-height: 14;
+}
+
+
+.preloader-mask {
+  background-color: var(--base-100);
+  -webkit-mask: linear-gradient(var(--base-300), var(--base-300)),
+    url("@/assets/mask.svg") center/50% no-repeat;
+  -webkit-mask-composite: subtract;
+  mask: linear-gradient(var(--base-300), var(--base-300)),
+    url("@/assets/mask.svg") center/50% no-repeat;
+  mask-composite: subtract;
+  will-change: transform;
+  z-index: 14;
+}
+
+.preloader-content {
+  z-index: 15;
+}
+
+.preloader-footer {
+  position: absolute;
+  bottom: 4rem;
+  left: 50%;
+  transform: translate(-50%);
+  width: 30%;
+  text-align: center;
+}
+
+.preloader-footer p {
+  color: var(--base-300);
+  opacity: 0.5;
+}
+
+.line,
+.char {
+  position: relative;
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+  will-change: transform;
+}
+
+
+
+
+
+
 .hero-wrap {
   display: flex;
   flex-direction: column;
