@@ -8,6 +8,7 @@ defineProps<{
   <template v-if="visible">
     <div class="preloader-progress">
       <div class="preloader-progress-bar"></div>
+
       <div class="preloader-logo">
         <h1>Logic</h1>
       </div>
@@ -28,8 +29,7 @@ defineProps<{
 .preloader-mask,
 .preloader-content {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100svh;
   pointer-events: none;
@@ -69,15 +69,20 @@ defineProps<{
   color: var(--base-300);
   font-size: 4.5rem;
   font-weight: 500;
+
+  /* 关键：默认先隐藏，防止开屏闪现 */
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .preloader-mask {
   background-color: var(--base-100);
   -webkit-mask: linear-gradient(var(--base-300), var(--base-300)),
-    url("@/assets/mask.svg") center/50% no-repeat;
+    url('@/assets/mask.svg') center/50% no-repeat;
   -webkit-mask-composite: subtract;
   mask: linear-gradient(var(--base-300), var(--base-300)),
-    url("@/assets/mask.svg") center/50% no-repeat;
+    url('@/assets/mask.svg') center/50% no-repeat;
   mask-composite: subtract;
   will-change: transform, opacity;
   z-index: 9998;
@@ -99,7 +104,9 @@ defineProps<{
 .preloader-footer p {
   font-size: 1.5rem;
   color: var(--base-300);
-  opacity: 0.5;
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .line,

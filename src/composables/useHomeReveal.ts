@@ -26,7 +26,16 @@ export function useHomeReveal() {
 
   const { preloaderPlayedInRuntime } = useHomeRevealRuntime()
 
+  function revertSplitTexts() {
+    Object.keys(splits).forEach((key) => {
+      splits[key]?.revert()
+      delete splits[key]
+    })
+  }
+
   function createSplitTexts(elements: SplitElementItem[]) {
+    revertSplitTexts()
+
     elements.forEach(({ key, selector, type }) => {
       const target = document.querySelector(selector)
       if (!target) return
@@ -91,21 +100,6 @@ export function useHomeReveal() {
       })
     }
 
-    if (splits.logoChars?.chars?.length) {
-      gsap.set(splits.logoChars.chars, { x: '100%' })
-    }
-
-    const verticalTargets = [...(splits.footerLines?.lines ?? [])]
-
-    if (verticalTargets.length) {
-      gsap.set(verticalTargets, { y: '100%' })
-    }
-
-    gsap.set('.preloader-progress-bar', {
-      scaleX: 0,
-      transformOrigin: 'left center',
-    })
-
     gsap.set('.preloader-progress', {
       opacity: 1,
       display: 'block',
@@ -121,6 +115,37 @@ export function useHomeReveal() {
       opacity: 1,
       display: 'block',
     })
+
+    gsap.set('.preloader-progress-bar', {
+      scaleX: 0,
+      transformOrigin: 'left center',
+    })
+
+    /* 关键：
+       这里才正式把文字设为可见
+       避免组件首帧渲染时先闪出来
+    */
+    gsap.set('.preloader-logo h1', {
+      opacity: 1,
+      visibility: 'visible',
+    })
+
+    gsap.set('.preloader-footer p', {
+      opacity: 0.5,
+      visibility: 'visible',
+    })
+
+    if (splits.logoChars?.chars?.length) {
+      gsap.set(splits.logoChars.chars, {
+        x: '100%',
+      })
+    }
+
+    if (splits.footerLines?.lines?.length) {
+      gsap.set(splits.footerLines.lines, {
+        y: '100%',
+      })
+    }
   }
 
   function animateProgress(duration = 3) {
@@ -152,8 +177,6 @@ export function useHomeReveal() {
 
     heroGateOpened = false
 
-    // 当前 runtime 已经播过 preloader
-    // 直接隐藏遮罩并立刻放行 hero
     if (preloaderPlayedInRuntime.value) {
       const siteShell = getSiteShell()
 
@@ -171,7 +194,6 @@ export function useHomeReveal() {
       return
     }
 
-    // 首次进入时先关门，等遮罩后半段再放 hero
     setHeroGateReady(false)
 
     const splitElements: SplitElementItem[] = [
@@ -295,9 +317,6 @@ export function useHomeReveal() {
       '<-0.6'
     )
 
-    // 关键：
-    // 在遮罩快结束时就提前放行 hero
-    // 这样视觉上是遮罩退场中，首页 hero 同步进入
     tl.call(
       () => {
         openHeroGateOnce()
@@ -307,10 +326,6 @@ export function useHomeReveal() {
     )
 
     return tl
-  }
-
-  function revertSplitTexts() {
-    Object.values(splits).forEach((split) => split.revert())
   }
 
   function cleanup() {

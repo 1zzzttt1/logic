@@ -320,7 +320,7 @@ onUnmounted(() => {
 <style scoped>
 .topbar {
   position: relative;
-  z-index: 10;
+  z-index: 12;
   padding: 26px 52px 0;
 }
 
