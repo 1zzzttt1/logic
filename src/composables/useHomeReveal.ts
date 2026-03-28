@@ -1,10 +1,6 @@
 import { nextTick, onBeforeUnmount } from 'vue'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
-import {
-  hasHomeRevealPlayedInRuntime,
-  markHomeRevealPlayedInRuntime,
-} from '@/composables/homeRevealRuntime'
 
 gsap.registerPlugin(SplitText)
 
@@ -46,14 +42,26 @@ export function useHomeReveal() {
     return splits
   }
 
+  function getSiteShell() {
+    return document.querySelector('.site-shell')
+  }
+
   function setInitialStates() {
+    const siteShell = getSiteShell()
+
+    if (siteShell) {
+      gsap.set(siteShell, {
+        scale: 0,
+        transformOrigin: '50% 50%',
+        willChange: 'transform',
+      })
+    }
+
     if (splits.logoChars?.chars?.length) {
       gsap.set(splits.logoChars.chars, { x: '100%' })
     }
 
-    const verticalTargets = [
-      ...(splits.footerLines?.lines ?? []),
-    ]
+    const verticalTargets = [...(splits.footerLines?.lines ?? [])]
 
     if (verticalTargets.length) {
       gsap.set(verticalTargets, { y: '100%' })
@@ -93,11 +101,6 @@ export function useHomeReveal() {
   }
 
   async function playHomeReveal(onFinished?: () => void) {
-    if (hasHomeRevealPlayedInRuntime()) {
-      onFinished?.()
-      return null
-    }
-
     await nextTick()
     await document.fonts.ready
 
@@ -109,13 +112,6 @@ export function useHomeReveal() {
     createSplitTexts(splitElements)
     setInitialStates()
 
-    /**
-     * 关键：
-     * 动画一开始就立刻标记，而不是等播放完
-     * 避免用户动画还没播完就跳走，回来后又重播
-     */
-    markHomeRevealPlayedInRuntime()
-
     tl?.kill()
 
     tl = gsap.timeline({
@@ -124,6 +120,14 @@ export function useHomeReveal() {
         ease: 'power4.inOut',
       },
       onComplete: () => {
+        const siteShell = getSiteShell()
+
+        if (siteShell) {
+          gsap.set(siteShell, {
+            clearProps: 'willChange',
+          })
+        }
+
         onFinished?.()
       },
     })
@@ -199,12 +203,22 @@ export function useHomeReveal() {
     tl.to(
       '.preloader-mask',
       {
-        scale: 6,
+        scale:10,
         opacity: 0,
-        duration: 2.5,
+        duration: 1.5,
         ease: 'power3.out',
       },
       '<'
+    )
+
+    tl.to(
+      '.site-shell',
+      {
+        scale: 1,
+        duration: 1.2,
+        ease: 'power3.out',
+      },
+      '<-0.6'
     )
 
     return tl

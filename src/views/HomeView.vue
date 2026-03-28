@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onActivated, ref, nextTick } from 'vue'
+import { ref,  } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHomeReveal } from '@/composables/useHomeReveal'
-import { hasHomeRevealPlayedInRuntime } from '@/composables/homeRevealRuntime'
 
 const router = useRouter()
 const { playHomeReveal } = useHomeReveal()
@@ -13,48 +12,10 @@ const goToKnowledge = () => {
   router.push('/knowledge')
 }
 
-function syncPreloaderVisibility() {
-  showPreloader.value = !hasHomeRevealPlayedInRuntime()
-}
-
-async function startRevealIfNeeded() {
-  syncPreloaderVisibility()
-
-  if (!showPreloader.value) return
-
-  await nextTick()
-
-  await playHomeReveal(() => {
-    showPreloader.value = false
-  })
-}
-
-onMounted(async () => {
-  await startRevealIfNeeded()
-})
-
-onActivated(async () => {
-  await startRevealIfNeeded()
-})
 </script>
 
 <template>
-  <template v-if="showPreloader">
-    <div class="preloader-progress">
-      <div class="preloader-progress-bar"></div>
-      <div class="preloader-logo">
-        <h1>Logic</h1>
-      </div>
-    </div>
-
-    <div class="preloader-mask"></div>
-
-    <div class="preloader-content">
-      <div class="preloader-footer">
-        <p>清晰，从这里开始</p>
-      </div>
-    </div>
-  </template>
+ 
 
   <main class="hero-wrap">
     <div class="hero-content">
@@ -174,6 +135,7 @@ onActivated(async () => {
   flex-direction: column;
   position: relative;
   z-index: 10;
+ 
 }
 
 .hero-content {

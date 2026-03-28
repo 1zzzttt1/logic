@@ -1,12 +1,28 @@
 <script setup lang="ts">
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useHomeReveal } from '@/composables/useHomeReveal'
+import PreloaderReveal from './components/PreloaderReveal.vue'
 import { useRoute } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 
 const route = useRoute()
 const isKnowledgePage = route.path === '/knowledge'
+
+const showPreloader = ref(true)
+const { playHomeReveal } = useHomeReveal()
+
+onMounted(async () => {
+  await nextTick()
+
+  await playHomeReveal(() => {
+    showPreloader.value = false
+  })
+})
 </script>
 
 <template>
+    <PreloaderReveal :visible="showPreloader" />
+    
   <div class="site-shell" :class="{ 'knowledge-bg': isKnowledgePage }">
     <div class="ambient-overlay"></div>
     <AppHeader :isKnowledgePage="isKnowledgePage" />
@@ -19,9 +35,6 @@ const isKnowledgePage = route.path === '/knowledge'
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
-
-
-
 
 
 :root {
@@ -82,19 +95,7 @@ body {
   
   font-family: 'Manrope', 'Noto Sans SC', sans-serif;
   color: #1f1f1c;
-  background:
-    radial-gradient(
-      circle at 50% 38%,
-      rgba(232, 240, 239, 0.92) 0%,
-      rgba(232, 240, 239, 0.72) 22%,
-      rgba(247, 245, 241, 0) 52%
-    ),
-    linear-gradient(
-      180deg,
-      #f7f5f1 0%,
-      #eef3f2 48%,
-      #e8f0ef 100%
-    );
+ 
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
@@ -161,7 +162,19 @@ html.dark body {
   position: relative;
   min-height: 100vh;
   isolation: isolate;
- 
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      rgba(232, 240, 239, 0.92) 0%,
+      rgba(232, 240, 239, 0.72) 22%,
+      rgba(247, 245, 241, 0) 52%
+    ),
+    linear-gradient(
+      180deg,
+      #f7f5f1 0%,
+      #eef3f2 48%,
+      #e8f0ef 100%
+    );
 }
 
 .page-content {
