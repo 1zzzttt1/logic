@@ -95,11 +95,16 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 html,
-body {
+body,
+#app {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
   padding: 0;
+}
+
+html,
+body {
   overflow-x: hidden;
 }
 
@@ -247,27 +252,30 @@ html.dark .ambient-overlay::after {
 /* Mobile styles */
 @media (max-width: 767px) {
   html,
-  body {
-    height: 100%;
-    overflow: hidden;
+  body,
+  #app {
+    min-height: 100%;
   }
 
   body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background-attachment: scroll;
   }
 
   .site-shell {
-    height: 100dvh;
     min-height: 100dvh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    display: block;
   }
 
   .page-content {
-    flex: 1;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
+    flex: none;
+    display: block;
+    min-height: auto;
+    overflow: visible;
   }
 
   html.light body {
