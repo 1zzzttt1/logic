@@ -23,11 +23,14 @@ onMounted(async () => {
 
 <template>
   <PreloaderReveal :visible="showPreloader" />
+  <Teleport to="body">
+    <AppHeader :isKnowledgePage="isKnowledgePage" />
+  </Teleport>
 
   <div class="site-shell" :class="{ 'knowledge-bg': isKnowledgePage }">
     <div class="ambient-overlay"></div>
 
-    <AppHeader :isKnowledgePage="isKnowledgePage" />
+   
 
     <div class="page-content">
       <router-view />
@@ -40,6 +43,9 @@ onMounted(async () => {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+
+
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -59,23 +65,77 @@ onMounted(async () => {
   color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
   --base-100: #181717;
   --base-200: #292725;
   --base-300: #f5f5f5;
 
-  --page-transition-stop-1: #E9F4F0;
-  --page-transition-stop-2: #C7E6E5;
-  --page-transition-stop-3: #C3E3EF;
-  --page-transition-stop-4: #B4D0E8;
+  /* page transition */
+  --page-transition-base-1: #edf7f4;
+  --page-transition-base-2: #d8efee;
+  --page-transition-base-3: #c9e7ef;
+  --page-transition-base-4: #b8d5eb;
+
+  --page-transition-glow-1: rgba(255, 255, 255, 0.65);
+  --page-transition-glow-2: rgba(255, 255, 255, 0);
+
+  --page-transition-shadow-1: rgba(160, 196, 222, 0.18);
+  --page-transition-shadow-2: rgba(160, 196, 222, 0);
+
+  /* overlay menu - light macarons */
+  --menu-bg-1: #f7dfe7;
+  --menu-bg-2: #dff4ec;
+  --menu-bg-3: #e5ecfb;
+  --menu-bg-4: #f9edd6;
+
+  --menu-panel-bg-top: #f7fbff;
+  --menu-panel-bg: #eef5fb;
+  --menu-panel-bg-bottom: #dde9f6;
+  --menu-panel-glow: rgba(255, 255, 255, 0.58);
+  --menu-panel-shadow: rgba(167, 190, 215, 0.18);
+
+  --menu-text-primary: #2f3950;
+  --menu-text-secondary: #5f6e8a;
+  --menu-text-soft: #7f8ca5;
+  --menu-line-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 html.dark {
   color-scheme: dark;
-  
-  --page-transition-stop-1: #31485D;
-  --page-transition-stop-2: #466476;
-  --page-transition-stop-3: #5E7896;
-  --page-transition-stop-4: #7C96AF;
+
+  --page-transition-base-1: #25384a;
+  --page-transition-base-2: #324b61;
+  --page-transition-base-3: #496985;
+  --page-transition-base-4: #6b88a4;
+
+  --page-transition-glow-1: rgba(210, 232, 246, 0.1);
+  --page-transition-glow-2: rgba(210, 232, 246, 0);
+
+  --page-transition-shadow-1: rgba(10, 18, 30, 0.26);
+  --page-transition-shadow-2: rgba(10, 18, 30, 0);
+
+  /* overlay menu - dark macarons */
+  --menu-bg-1: #6f8fb0;
+  --menu-bg-2: #7aa79b;
+  --menu-bg-3: #8a7cb8;
+  --menu-bg-4: #b88ea1;
+
+  --menu-panel-bg-top: #31465d;
+  --menu-panel-bg: #243244;
+  --menu-panel-bg-bottom: #1b2634;
+  --menu-panel-glow: rgba(211, 228, 245, 0.08);
+  --menu-panel-shadow: rgba(7, 12, 20, 0.34);
+
+  --menu-text-primary: #f7fbff;
+  --menu-text-secondary: #d7e3f2;
+  --menu-text-soft: #adc0d6;
+  --menu-line-shadow: 0 1px 10px rgba(0, 0, 0, 0.16);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
 }
 
 * {

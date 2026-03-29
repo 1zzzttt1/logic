@@ -1227,7 +1227,7 @@ html.dark .mobile-toc {
   color: #fff;
   box-shadow: 0 12px 28px rgba(31, 31, 28, 0.16);
   cursor: pointer;
-  z-index: 2100;
+  z-index: 10;
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
