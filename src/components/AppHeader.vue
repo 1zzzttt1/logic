@@ -44,7 +44,6 @@ const navItems = [
 
 const socialLinks = [
   { name: 'GitHub', href: 'https://github.com/' },
-  { name: 'X', href: 'https://x.com/' },
   { name: 'LinkedIn', href: 'https://linkedin.com/' },
 ]
 

@@ -239,7 +239,6 @@ html.dark body .site-shell {
     );
   background-repeat: no-repeat;
   background-size: cover;
-  background-attachment: fixed;
 }
 
 .knowledge-bg html.dark body {
@@ -334,7 +333,7 @@ html.dark .ambient-overlay::after {
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    background-attachment: scroll;
+  
   }
 
   .site-shell {
@@ -347,7 +346,7 @@ html.dark .ambient-overlay::after {
   .page-content {
     flex: none;
     display: flex;
-    min-height: 88svh;
+   min-height: 100svh;
     overflow: visible;
   }
 
