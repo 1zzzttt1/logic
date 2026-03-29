@@ -84,14 +84,16 @@ export function usePageTransition() {
           duration: 0.2,
           ease: 'power1',
           attr: { d: PATHS.step1.filled },
-          onComplete: async () => {
-            if (replace) {
-              await router.replace(to)
-            } else {
-              await router.push(to)
-            }
+          onComplete: () => {
+            void (async () => {
+              if (replace) {
+                await router.replace(to)
+              } else {
+                await router.push(to)
+              }
 
-            onRouteChange?.()
+              onRouteChange?.()
+          })()
           },
         })
         .to({}, { duration: 0.75 })
