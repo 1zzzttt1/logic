@@ -3,8 +3,8 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
 
 const HEADER_HEIGHT = 80
-const DESKTOP_BREAKPOINT = 768
-const TOC_BREAKPOINT = 1100
+const DESKTOP_BREAKPOINT = 948
+const TOC_BREAKPOINT = 1200
 
 const isSidebarCollapsed = ref(false)
 const showMobileMenu = ref(false)
@@ -302,16 +302,7 @@ watch(selectedArticle, () => {
         class="desktop-sidebar-left"
         :class="{ collapsed: isSidebarCollapsed }"
       >
-        <button
-          class="collapse-btn"
-          type="button"
-          @click="toggleSidebar"
-          :title="isSidebarCollapsed ? '展开菜单' : '收起菜单'"
-        >
-          <span class="material-symbols-outlined">
-            {{ isSidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
-          </span>
-        </button>
+       
 
         <template v-if="!isSidebarCollapsed">
           <div class="sidebar-header">
@@ -355,8 +346,7 @@ watch(selectedArticle, () => {
         class="desktop-sidebar-right"
       >
         <div class="toc-head">
-          <p class="toc-kicker">On this page</p>
-          <h4 class="toc-title">本章目录</h4>
+          <h4 class="toc-title">页面导航</h4>
         </div>
 
         <nav class="toc-nav">
@@ -537,7 +527,7 @@ watch(selectedArticle, () => {
   overflow: visible;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 948px) {
   .main-content {
     width: auto;
     max-width: var(--content-max);
@@ -552,7 +542,7 @@ watch(selectedArticle, () => {
   }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1200px) {
   .main-content {
     margin-left: calc(var(--left-width) + var(--gutter-left));
     margin-right: calc(var(--right-width) + var(--gutter-right));
@@ -598,7 +588,7 @@ html.dark .article-title {
   color: #f4f6fa;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 948px) {
   .article-title {
     font-size: 52px;
   }
@@ -645,24 +635,16 @@ html.dark .article-body {
 
 .desktop-sidebar-left {
   position: fixed;
-  left: 20px;
-  top: 10vw;
-  width: 20vw;
+  top: 5rem;
+  min-width: 15.5rem;
+  height: 100svh;
+  border-right: 1px solid #d9dadb;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   box-sizing: border-box;
-  border: 1px solid rgba(214, 209, 201, 0.42);
-  background: var(--surface-light);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
   z-index: 1200;
-  transition:
-    width 0.28s ease,
-    padding 0.28s ease,
-    background 0.28s ease;
 }
 
 .desktop-sidebar-left.collapsed {
@@ -856,28 +838,22 @@ html.dark .nav-item.active {
 
 .desktop-sidebar-right {
   position: fixed;
-  right: 24px;
-  top: 10vw;
-  width: var(--right-width);
+  right: 0;
+  top: 5rem;
+  min-width: 14rem;
+  height: 100vh;
   overflow-y: auto;
   padding: 16px 14px;
   box-sizing: border-box;
   z-index: 10;
-  border: 1px solid rgba(214, 209, 201, 0.42);
-  background: rgba(253, 252, 251, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  box-shadow:
-    0 10px 30px rgba(31, 31, 28, 0.06),
-    0 2px 8px rgba(31, 31, 28, 0.04);
+  border-left: 1px solid rgba(186, 184, 184, 0.42);
+ 
 }
 
-html.dark .desktop-sidebar-right {
-  background: rgba(27, 39, 57, 0.68);
+html.dark .desktop-sidebar-right{
   border-color: rgba(166, 185, 212, 0.14);
-  box-shadow: none;
 }
+
 
 .toc-head {
   margin-bottom: 14px;
@@ -1160,6 +1136,7 @@ html.dark .nav-link-text {
   box-shadow: 12px 0 32px rgba(0, 0, 0, 0.12);
   transform: translateX(-100%);
   transition: transform 0.3s ease;
+  padding-top: 7rem;
 }
 
 .mobile-menu-overlay.active .mobile-menu-drawer {
@@ -1246,7 +1223,7 @@ html.dark .mobile-menu-fab {
   color: #1b2739;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 948px) {
   .mobile-menu-fab {
     display: none;
   }
