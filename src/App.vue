@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useHomeReveal } from '@/composables/useHomeReveal'
 import PreloaderReveal from '@/components/PreloaderReveal.vue'
-import { useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
+import PageTransitionOverlay from '@/components/PageTransitionOverlay.vue'
 
 const route = useRoute()
 const isKnowledgePage = computed(() => route.path === '/knowledge')
@@ -25,11 +26,15 @@ onMounted(async () => {
 
   <div class="site-shell" :class="{ 'knowledge-bg': isKnowledgePage }">
     <div class="ambient-overlay"></div>
+
     <AppHeader :isKnowledgePage="isKnowledgePage" />
+
     <div class="page-content">
       <router-view />
     </div>
   </div>
+
+  <PageTransitionOverlay />
 </template>
 
 <style>
@@ -67,7 +72,6 @@ html.dark {
   box-sizing: border-box;
 }
 
-/* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -120,7 +124,7 @@ body {
 }
 
 .knowledge-bg body {
-  background: #F7F5F1 !important;
+  background: #f7f5f1 !important;
 }
 
 html.dark body .site-shell {
@@ -169,7 +173,7 @@ html.dark body .site-shell {
 }
 
 .knowledge-bg html.dark body {
-  background: #F7F5F1 !important;
+  background: #f7f5f1 !important;
 }
 
 .site-shell {
@@ -249,7 +253,6 @@ html.dark .ambient-overlay::after {
   background: rgba(107, 123, 152, 0.2);
 }
 
-/* Mobile styles */
 @media (max-width: 767px) {
   html,
   body,
@@ -298,7 +301,7 @@ html.dark .ambient-overlay::after {
   }
 
   .knowledge-bg html.light body {
-    background: #F7F5F1 !important;
+    background: #f7f5f1 !important;
   }
 
   html.dark body {
@@ -346,7 +349,7 @@ html.dark .ambient-overlay::after {
   }
 
   .knowledge-bg html.dark body {
-    background: #F7F5F1 !important;
+    background: #f7f5f1 !important;
   }
 }
 </style>

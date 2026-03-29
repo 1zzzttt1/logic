@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useHeroTitleReveal } from '@/composables/useHomeAnimate'
 import { useHomeRevealRuntime } from '@/composables/homeRevealRuntime'
+import { usePageTransition } from '@/composables/usePageTransition'
 
-const router = useRouter()
 const { playHeroTitleReveal, cleanup } = useHeroTitleReveal()
 const { heroGateReady, preloaderPlayedInRuntime } = useHomeRevealRuntime()
+const { navigateWithTransition, isTransitioning } = usePageTransition()
 
 const goToKnowledge = () => {
-  router.push('/knowledge')
+  if (isTransitioning.value) return
+
+  navigateWithTransition('/knowledge')
 }
 
 let stopWatch: (() => void) | null = null
@@ -27,7 +29,7 @@ onMounted(async () => {
         await playHeroTitleReveal()
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 })
 
@@ -53,7 +55,11 @@ onBeforeUnmount(() => {
         走进智能时代。
       </p>
 
-      <button class="cta-btn" @click="goToKnowledge">
+      <button
+        class="cta-btn"
+        :disabled="isTransitioning"
+        @click="goToKnowledge"
+      >
         <span>学 习 AI</span>
         <span class="material-symbols-outlined">arrow_forward</span>
       </button>
@@ -242,6 +248,12 @@ html.dark .hero-subtitle {
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
   margin: 0 auto;
   will-change: transform;
+  transition: opacity 0.2s ease;
+}
+
+.cta-btn:disabled {
+  cursor: default;
+  opacity: 0.8;
 }
 
 html.dark .cta-btn {
