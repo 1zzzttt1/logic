@@ -63,13 +63,19 @@ onMounted(async () => {
   --base-200: #292725;
   --base-300: #f5f5f5;
 
-   --page-transition-fill: #eef3f2;
+  --page-transition-stop-1: #E9F4F0;
+  --page-transition-stop-2: #C7E6E5;
+  --page-transition-stop-3: #C3E3EF;
+  --page-transition-stop-4: #B4D0E8;
 }
 
 html.dark {
   color-scheme: dark;
   
-  --page-transition-fill: #091321;
+  --page-transition-stop-1: #31485D;
+  --page-transition-stop-2: #466476;
+  --page-transition-stop-3: #5E7896;
+  --page-transition-stop-4: #7C96AF;
 }
 
 * {

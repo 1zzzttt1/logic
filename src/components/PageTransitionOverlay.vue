@@ -31,11 +31,39 @@ watch(pathRef, (el) => {
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
+      <defs>
+        <linearGradient
+          id="pageTransitionGradient"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="100%"
+        >
+          <stop
+            offset="0%"
+            class="page-transition-overlay__stop page-transition-overlay__stop--1"
+          />
+          <stop
+            offset="30%"
+            class="page-transition-overlay__stop page-transition-overlay__stop--2"
+          />
+          <stop
+            offset="65%"
+            class="page-transition-overlay__stop page-transition-overlay__stop--3"
+          />
+          <stop
+            offset="100%"
+            class="page-transition-overlay__stop page-transition-overlay__stop--4"
+          />
+        </linearGradient>
+      </defs>
+
       <path
         ref="pathRef"
         class="page-transition-overlay__path"
         vector-effect="non-scaling-stroke"
         d="M 0 0 h 0 c 0 50 0 50 0 100 H 0 V 0 Z"
+        fill="url(#pageTransitionGradient)"
       />
     </svg>
   </div>
@@ -66,11 +94,30 @@ watch(pathRef, (el) => {
 }
 
 .page-transition-overlay__path {
-   fill: var(--page-transition-fill);
-  transition: fill 0.25s ease;
+  transition: opacity 0.25s ease;
 }
 
-html.dark .page-transition-overlay__path {
-  fill: #060d18;
+.page-transition-overlay__stop {
+  transition: stop-color 0.25s ease, stop-opacity 0.25s ease;
+}
+
+.page-transition-overlay__stop--1 {
+  stop-color: var(--page-transition-stop-1);
+  stop-opacity: 1;
+}
+
+.page-transition-overlay__stop--2 {
+  stop-color: var(--page-transition-stop-2);
+  stop-opacity: 1;
+}
+
+.page-transition-overlay__stop--3 {
+  stop-color: var(--page-transition-stop-3);
+  stop-opacity: 1;
+}
+
+.page-transition-overlay__stop--4 {
+  stop-color: var(--page-transition-stop-4);
+  stop-opacity: 1;
 }
 </style>
