@@ -62,10 +62,14 @@ onMounted(async () => {
   --base-100: #181717;
   --base-200: #292725;
   --base-300: #f5f5f5;
+
+   --page-transition-fill: #eef3f2;
 }
 
 html.dark {
   color-scheme: dark;
+  
+  --page-transition-fill: #091321;
 }
 
 * {

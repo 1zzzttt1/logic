@@ -66,7 +66,8 @@ watch(pathRef, (el) => {
 }
 
 .page-transition-overlay__path {
-  fill: #111111;
+   fill: var(--page-transition-fill);
+  transition: fill 0.25s ease;
 }
 
 html.dark .page-transition-overlay__path {

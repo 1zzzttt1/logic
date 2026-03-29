@@ -112,25 +112,15 @@ const animateToggleButton = (button: HTMLElement) => {
   button.animate(
     [
       { transform: 'scale(1)' },
-      { transform: 'scale(0.88)' },
-      { transform: 'scale(1.06)' },
+      { transform: 'scale(0.92)' },
+      { transform: 'scale(1.02)' },
       { transform: 'scale(1)' },
     ],
     {
-      duration: 520,
+      duration: 320,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
     },
   )
-}
-
-const triggerPulse = (button: HTMLElement) => {
-  button.classList.remove('pulse')
-  void button.offsetWidth
-  button.classList.add('pulse')
-
-  window.setTimeout(() => {
-    button.classList.remove('pulse')
-  }, 720)
 }
 
 const toggleTheme = async (e: MouseEvent) => {
@@ -143,16 +133,17 @@ const toggleTheme = async (e: MouseEvent) => {
   }
 
   animateToggleButton(button)
-  triggerPulse(button)
 
   const rect = button.getBoundingClientRect()
-  const x = rect.left + rect.width / 2
-  const y = rect.top + rect.height / 2
+
+  // 优先使用真实点击点，主观上会比纯几何中心更准
+  const x = e.clientX || rect.left + rect.width / 2
+  const y = e.clientY || rect.top + rect.height / 2
 
   const endRadius = Math.hypot(
     Math.max(x, window.innerWidth - x),
     Math.max(y, window.innerHeight - y),
-  )
+  )  * 1.2
 
   const doc = document as Document & {
     startViewTransition?: (
@@ -170,9 +161,7 @@ const toggleTheme = async (e: MouseEvent) => {
     return
   }
 
-  const startViewTransition = doc.startViewTransition.bind(document)
-
-  const transition = startViewTransition(async () => {
+  const transition = doc.startViewTransition(async () => {
     applyTheme(nextDark)
     await nextTick()
   })
@@ -181,18 +170,12 @@ const toggleTheme = async (e: MouseEvent) => {
 
   document.documentElement.animate(
     [
-      {
-        opacity: 1,
-        filter: 'blur(0px)',
-      },
-      {
-        opacity: 0.9,
-        filter: 'blur(2px)',
-      },
+      { opacity: 1 },
+      { opacity: 1 },
     ],
     {
-      duration: 260,
-      easing: 'ease-out',
+      duration: 420,
+      easing: 'linear',
       pseudoElement: '::view-transition-old(root)',
     },
   )
@@ -200,27 +183,22 @@ const toggleTheme = async (e: MouseEvent) => {
   document.documentElement.animate(
     [
       {
-        clipPath: `circle(18px at ${x}px ${y}px)`,
-        filter: 'brightness(1.08) saturate(1.08) blur(6px)',
-        opacity: 0.92,
-      },
-      {
-        clipPath: `circle(${endRadius * 0.55}px at ${x}px ${y}px)`,
-        filter: 'brightness(1.03) saturate(1.03) blur(2px)',
+        clipPath: `circle(0px at ${x}px ${y}px)`,
         opacity: 1,
       },
       {
         clipPath: `circle(${endRadius}px at ${x}px ${y}px)`,
-        filter: 'brightness(1) saturate(1) blur(0px)',
         opacity: 1,
       },
     ],
     {
-      duration: 820,
+      duration: 560,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       pseudoElement: '::view-transition-new(root)',
     },
   )
+
+  await transition.finished
 }
 
 const toggleMobileMenu = (e: Event) => {
@@ -235,14 +213,14 @@ const closeMobileMenu = () => {
 const handleDocumentClick = (e: Event) => {
   const target = e.target as HTMLElement
   if (!target.closest('.mobile-menu-panel') && !target.closest('.menu-toggle')) {
-    showMobileMenu.value = false
+    closeMobileMenu()
   }
 }
 
 const handleNavigate = async (path: string) => {
   if (isTransitioning.value) return
 
-  showMobileMenu.value = false
+  closeMobileMenu()
   await navigateWithTransition(path)
 }
 
@@ -252,7 +230,6 @@ onMounted(() => {
   const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light')
 
   applyTheme(initialTheme === 'dark')
-
   document.addEventListener('click', handleDocumentClick)
 })
 
@@ -410,7 +387,6 @@ onUnmounted(() => {
     border-color 0.28s ease,
     color 0.28s ease,
     box-shadow 0.28s ease,
-    transform 0.28s ease,
     opacity 0.2s ease;
   box-shadow: 0 6px 18px rgba(31, 31, 28, 0.06);
 }
@@ -424,12 +400,12 @@ onUnmounted(() => {
 .theme-toggle {
   position: relative;
   overflow: visible;
+  will-change: transform;
 }
 
 .theme-toggle:hover,
 .menu-toggle:hover {
   background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
 }
 
 :global(html.dark) .theme-toggle,
@@ -452,41 +428,6 @@ onUnmounted(() => {
 
 .theme-toggle.dark-mode .theme-icon {
   transform: rotate(180deg);
-}
-
-.theme-toggle::after {
-  content: '';
-  position: absolute;
-  inset: -10px;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle,
-    rgba(95, 110, 138, 0.22) 0%,
-    rgba(95, 110, 138, 0.12) 35%,
-    rgba(95, 110, 138, 0) 72%
-  );
-  opacity: 0;
-  transform: scale(0.7);
-  pointer-events: none;
-}
-
-.theme-toggle.pulse::after {
-  animation: themePulse 720ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes themePulse {
-  0% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.35);
-  }
 }
 
 .material-symbols-outlined {
@@ -536,6 +477,16 @@ onUnmounted(() => {
 
 .mobile-nav-link:hover {
   background: rgba(214, 209, 201, 0.24);
+}
+
+:global(::view-transition-old(root)),
+:global(::view-transition-new(root)) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:global(::view-transition-image-pair(root)) {
+  isolation: auto;
 }
 
 @media (max-width: 767px) {
