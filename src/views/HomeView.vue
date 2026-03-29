@@ -13,24 +13,43 @@ const goToKnowledge = () => {
   navigateWithTransition('/knowledge')
 }
 
-const lockHomeScroll = () => {
+const isDesktop = () => window.innerWidth >= 768
+
+const lockPageScroll = () => {
   document.documentElement.style.overflow = 'hidden'
   document.body.style.overflow = 'hidden'
+  document.documentElement.style.width = '100%'
+  document.body.style.width = '100%'
   document.documentElement.style.height = '100%'
   document.body.style.height = '100%'
+  document.body.style.margin = '0'
+  document.body.style.overscrollBehavior = 'none'
 }
 
-const unlockHomeScroll = () => {
+const unlockPageScroll = () => {
   document.documentElement.style.overflow = ''
   document.body.style.overflow = ''
+  document.documentElement.style.width = ''
+  document.body.style.width = ''
   document.documentElement.style.height = ''
   document.body.style.height = ''
+  document.body.style.margin = ''
+  document.body.style.overscrollBehavior = ''
+}
+
+const syncScrollMode = () => {
+  if (isDesktop()) {
+    lockPageScroll()
+  } else {
+    unlockPageScroll()
+  }
 }
 
 let stopWatch: (() => void) | null = null
 
 onMounted(async () => {
-  lockHomeScroll()
+  syncScrollMode()
+  window.addEventListener('resize', syncScrollMode)
 
   if (preloaderPlayedInRuntime.value) {
     await playHeroTitleReveal()
@@ -52,7 +71,8 @@ onBeforeUnmount(() => {
   stopWatch?.()
   stopWatch = null
   cleanup()
-  unlockHomeScroll()
+  window.removeEventListener('resize', syncScrollMode)
+  unlockPageScroll()
 })
 </script>
 
@@ -85,20 +105,23 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .hero-wrap {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 10;
-  width: 100%;
+  width: 100vw;
   height: 100dvh;
   min-height: 100dvh;
   max-height: 100dvh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .hero-content {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .hero-content--masked {
@@ -238,10 +261,14 @@ html.dark .cta-btn:hover {
 
 @media (max-width: 767px) {
   .hero-wrap {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    padding: calc(var(--safe-top) + 84px) 20px calc(var(--safe-bottom) + 20px);
     justify-content: flex-end;
     align-items: stretch;
-    padding: calc(var(--safe-top) + 84px) 20px calc(var(--safe-bottom) + 20px);
     text-align: left;
+    overflow: hidden;
   }
 
   .hero-content {
@@ -250,6 +277,7 @@ html.dark .cta-btn:hover {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    min-height: 0;
   }
 
   .light-streak {
@@ -266,6 +294,7 @@ html.dark .cta-btn:hover {
     letter-spacing: 0.08em;
     line-height: 1.05;
     color: #181816;
+    text-align: left;
   }
 
   html.dark .hero-title {
@@ -289,7 +318,8 @@ html.dark .cta-btn:hover {
     width: min(220px, 68%);
     min-width: 0;
     height: 68px;
-    margin: 0;
+    margin: 0 auto;
+    align-self: center;
     font-size: 1rem;
   }
 }

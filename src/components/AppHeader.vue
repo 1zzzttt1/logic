@@ -900,7 +900,7 @@ onUnmounted(() => {
 .nav-primary-links {
   display: flex;
   flex-direction: column;
-  margin-bottom: -5rem;
+  margin-bottom: -7rem;
 }
 
 .nav-primary-links a {
@@ -908,6 +908,7 @@ onUnmounted(() => {
   font-size: clamp(2.2rem, 5vw, 4rem);
   letter-spacing: -0.03em;
   color: var(--menu-text-primary);
+  margin-top: 0.2rem;
 }
 
 .nav-primary-links a::after {
