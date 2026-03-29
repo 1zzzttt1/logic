@@ -12,6 +12,12 @@ const showMobileMenu = ref(false)
 const selectedCategory = ref('ai-basics')
 const selectedArticle = ref<KnowledgeArticle | null>(null)
 
+/**
+ * 单独控制一级菜单展开状态
+ * 这样“是否展开”和“当前选中文章属于哪个分类”就解耦了
+ */
+const expandedCategoryIds = ref<string[]>([])
+
 const isDesktopSidebarVisible = ref(false)
 const isDesktopTocVisible = ref(false)
 
@@ -41,9 +47,11 @@ const sidebarNav = computed(() => {
   return {
     series: '知识库',
     groups: knowledgeData.map((category) => ({
+      id: category.id,
       title: category.name,
-      expanded: category.id === selectedCategory.value,
+      expanded: expandedCategoryIds.value.includes(category.id),
       items: category.articles.map((article) => ({
+        id: article.id,
         name: article.title,
         path: `#${category.id}/${article.id}`,
         active:
@@ -54,16 +62,36 @@ const sidebarNav = computed(() => {
   }
 })
 
+/**
+ * 点击一级菜单：
+ * 只负责展开 / 收起，不再直接跳转文章
+ */
 const toggleGroup = (index: number) => {
   const category = knowledgeData[index]
   if (!category) return
 
-  selectedCategory.value = category.id
-  selectedArticle.value = category.articles[0] || null
+  const categoryId = category.id
+  const isExpanded = expandedCategoryIds.value.includes(categoryId)
+
+  if (isExpanded) {
+    expandedCategoryIds.value = expandedCategoryIds.value.filter((id) => id !== categoryId)
+  } else {
+    expandedCategoryIds.value = [...expandedCategoryIds.value, categoryId]
+  }
 }
 
+/**
+ * 点击二级菜单：
+ * 才真正进入文章
+ */
 const selectArticle = (categoryId: string, articleId: string) => {
   selectedCategory.value = categoryId
+
+  // 进入文章时，自动保证所属一级菜单展开
+  if (!expandedCategoryIds.value.includes(categoryId)) {
+    expandedCategoryIds.value = [...expandedCategoryIds.value, categoryId]
+  }
+
   const articles = getArticlesByCategory(categoryId)
   selectedArticle.value = articles.find((a) => a.id === articleId) || null
 
@@ -244,6 +272,7 @@ onMounted(() => {
   if (firstCategory?.articles?.[0]) {
     selectedCategory.value = firstCategory.id
     selectedArticle.value = firstCategory.articles[0]
+    expandedCategoryIds.value = [firstCategory.id]
   }
 
   nextTick(() => {
@@ -268,81 +297,81 @@ watch(selectedArticle, () => {
 <template>
   <div class="knowledge-page" :class="{ collapsed: isSidebarCollapsed }">
     <Teleport to="body">
-    <aside
-      v-if="isDesktopSidebarVisible"
-      class="desktop-sidebar-left"
-      :class="{ collapsed: isSidebarCollapsed }"
-    >
-      <button
-        class="collapse-btn"
-        type="button"
-        @click="toggleSidebar"
-        :title="isSidebarCollapsed ? '展开菜单' : '收起菜单'"
+      <aside
+        v-if="isDesktopSidebarVisible"
+        class="desktop-sidebar-left"
+        :class="{ collapsed: isSidebarCollapsed }"
       >
-        <span class="material-symbols-outlined">
-          {{ isSidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
-        </span>
-      </button>
+        <button
+          class="collapse-btn"
+          type="button"
+          @click="toggleSidebar"
+          :title="isSidebarCollapsed ? '展开菜单' : '收起菜单'"
+        >
+          <span class="material-symbols-outlined">
+            {{ isSidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
+          </span>
+        </button>
 
-      <template v-if="!isSidebarCollapsed">
-        <div class="sidebar-header">
-          <p class="sidebar-series">知识库</p>
-          <h3 class="sidebar-title">教程目录</h3>
-        </div>
-
-        <nav class="sidebar-nav">
-          <div v-for="(group, index) in sidebarNav.groups" :key="group.title" class="nav-group">
-            <div class="group-header" @click="toggleGroup(index)">
-              <span class="group-title">{{ group.title }}</span>
-              <span
-                class="material-symbols-outlined group-toggle-icon"
-                :class="{ expanded: group.expanded }"
-              >
-                expand_more
-              </span>
-            </div>
-
-            <div class="group-items" :class="{ collapsed: !group.expanded }">
-              <a
-                v-for="item in group.items"
-                :key="item.name"
-                :href="item.path"
-                class="nav-item"
-                :class="{ active: item.active }"
-                @click.prevent="handleNavClick(item.path)"
-              >
-                {{ item.name }}
-              </a>
-            </div>
+        <template v-if="!isSidebarCollapsed">
+          <div class="sidebar-header">
+            <p class="sidebar-series">知识库</p>
+            <h3 class="sidebar-title">教程目录</h3>
           </div>
-        </nav>
-      </template>
-    </aside>
+
+          <nav class="sidebar-nav">
+            <div v-for="(group, index) in sidebarNav.groups" :key="group.id" class="nav-group">
+              <button class="group-header" type="button" @click="toggleGroup(index)">
+                <span class="group-title">{{ group.title }}</span>
+                <span
+                  class="material-symbols-outlined group-toggle-icon"
+                  :class="{ expanded: group.expanded }"
+                >
+                  expand_more
+                </span>
+              </button>
+
+              <div class="group-items" :class="{ collapsed: !group.expanded }">
+                <a
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :href="item.path"
+                  class="nav-item"
+                  :class="{ active: item.active }"
+                  @click.prevent="handleNavClick(item.path)"
+                >
+                  {{ item.name }}
+                </a>
+              </div>
+            </div>
+          </nav>
+        </template>
+      </aside>
     </Teleport>
 
     <Teleport to="body">
-    <aside
-      v-if="isDesktopTocVisible && tocItems.length > 0"
-      class="desktop-sidebar-right"
-    >
-      <div class="toc-head">
-        <p class="toc-kicker">On this page</p>
-        <h4 class="toc-title">本章目录</h4>
-      </div>
+      <aside
+        v-if="isDesktopTocVisible && tocItems.length > 0"
+        class="desktop-sidebar-right"
+      >
+        <div class="toc-head">
+          <p class="toc-kicker">On this page</p>
+          <h4 class="toc-title">本章目录</h4>
+        </div>
 
-      <nav class="toc-nav">
-        <a
-          v-for="item in tocItems"
-          :key="item.id"
-          :href="'#' + item.id"
-          class="toc-item"
-          :class="{ active: item.active }"
-          @click.prevent="scrollToAnchor(item.id)"
-        >
-          {{ item.name }}
-        </a>
-      </nav>
-    </aside>
+        <nav class="toc-nav">
+          <a
+            v-for="item in tocItems"
+            :key="item.id"
+            :href="'#' + item.id"
+            class="toc-item"
+            :class="{ active: item.active }"
+            @click.prevent="scrollToAnchor(item.id)"
+          >
+            {{ item.name }}
+          </a>
+        </nav>
+      </aside>
     </Teleport>
 
     <Teleport to="body">
@@ -365,10 +394,10 @@ watch(selectedArticle, () => {
           <nav class="sidebar-nav">
             <div
               v-for="(group, index) in sidebarNav.groups"
-              :key="group.title"
+              :key="group.id"
               class="nav-group"
             >
-              <div class="group-header" @click="toggleGroup(index)">
+              <button class="group-header" type="button" @click="toggleGroup(index)">
                 <span class="group-title">{{ group.title }}</span>
                 <span
                   class="material-symbols-outlined group-toggle-icon"
@@ -376,12 +405,12 @@ watch(selectedArticle, () => {
                 >
                   expand_more
                 </span>
-              </div>
+              </button>
 
               <div class="group-items" :class="{ collapsed: !group.expanded }">
                 <a
                   v-for="item in group.items"
-                  :key="item.name"
+                  :key="item.id"
                   :href="item.path"
                   class="nav-item"
                   :class="{ active: item.active }"
@@ -618,7 +647,7 @@ html.dark .article-body {
   position: fixed;
   left: 20px;
   top: 10vw;
-  min-width: 20vw;
+  width: 20vw;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
@@ -720,14 +749,18 @@ html.dark .sidebar-title {
 }
 
 .group-header {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 8px 10px;
+  border: none;
   border-radius: 10px;
+  background: transparent;
   cursor: pointer;
   transition: background 0.2s ease;
+  text-align: left;
 }
 
 .group-header:hover {
@@ -769,6 +802,8 @@ html.dark .group-toggle-icon {
 .group-items {
   overflow: hidden;
   transition: max-height 0.3s ease, opacity 0.2s ease;
+  max-height: 1200px;
+  opacity: 1;
 }
 
 .group-items.collapsed {
