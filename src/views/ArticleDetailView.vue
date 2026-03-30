@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { mdArticles } from '../data/articles'
+import BackToTopButton from '@/components/BackToTopButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,12 +79,15 @@ onMounted(() => {
       <router-link to="/articles" class="back-btn">返回文章列表</router-link>
     </div>
   </div>
+
+  <back-to-top-button></back-to-top-button>
+
 </template>
 
 <style scoped>
 .article-detail-page {
   min-height: calc(100vh - 80px);
-  padding: 2rem 1.5rem 4rem;
+  padding: 7rem 1.5rem 4rem;
   max-width: 48rem;
   margin: 0 auto;
 }
@@ -343,7 +347,7 @@ html.dark .not-found h1 {
 
 @media (min-width: 768px) {
   .article-detail-page {
-    padding: 3rem 2rem 5rem;
+    padding: 7rem 2rem 5rem;
   }
 
   .article-title {
