@@ -734,6 +734,8 @@ watch(selectedArticle, () => {
   .knowledge-page.collapsed .main-content {
     margin-left: calc(var(--left-collapsed-width) + 28px);
   }
+
+
 }
 
 .article-header {
@@ -1557,6 +1559,16 @@ html.dark .back-to-top-ring__icon {
     font-size: 18px;
   }
 }
+
+@media (min-width: 1200px) {
+  .back-to-top-btn {
+    right: 16rem;
+    bottom: 5rem;
+    width: 58px;
+    height: 58px;
+  }  
+}
+
 
 .empty-content {
   padding: 32px;

@@ -17,7 +17,7 @@ export interface KnowledgeCategory {
 export const knowledgeCategories = [
   { id: 'ai-basics', name: 'AI基础' },
   { id: 'claude-code', name: 'Claude Code使用教程' },
-  { id: 'ai-development', name: 'AI应用开发' }
+  { id: 'ai-development', name: 'AI应用开发' },
 ]
 
 // 动态加载各分类下的 MD 文件
@@ -115,7 +115,7 @@ export const knowledgeData: KnowledgeCategory[] = [
     id: 'ai-development',
     name: 'AI应用开发',
     articles: aiDevelopmentArticles
-  }
+  },
 ]
 
 // 根据分类获取文章
