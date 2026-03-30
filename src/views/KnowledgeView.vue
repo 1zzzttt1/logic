@@ -153,26 +153,67 @@ function slugifyHeading(text: string) {
     .replace(/^-|-$/g, '')
 }
 
-function generateToc(content: string): { name: string; id: string; active: boolean }[] {
-  const toc: { name: string; id: string; active: boolean }[] = []
-  const headings = content.match(/^#{1,3}\s+(.+)$/gm) || []
+type TocItem = {
+  name: string
+  id: string
+  level: number
+  active: boolean
+  children: TocItem[]
+}
 
-  headings.forEach((heading, index) => {
-    const text = heading.replace(/^#{1,3}\s+/, '').trim()
+function generateToc(content: string): TocItem[] {
+  const toc: TocItem[] = []
+  // 匹配 # ## ### 并捕获层级
+  const headingRegex = /^(#{1,3})\s+(.+)$/gm
+  let match: RegExpExecArray | null
+
+  while ((match = headingRegex.exec(content)) !== null) {
+    const level = match[1]!.length // 1, 2, or 3
+    const text = match[2]!.trim()
     const id = slugifyHeading(text)
-    if (!id) return
+    if (!id) continue
 
     toc.push({
       name: text,
       id,
-      active: index === 0,
+      level,
+      active: false,
+      children: [],
     })
-  })
+  }
 
   return toc
 }
 
-const tocItems = ref<{ name: string; id: string; active: boolean }[]>([])
+// 将扁平 TOC 构建为嵌套结构
+function buildNestedToc(flatToc: TocItem[]): TocItem[] {
+  const result: TocItem[] = []
+  const stack: TocItem[] = []
+
+  for (const item of flatToc) {
+    // 创建新 item
+    const newItem: TocItem = { ...item, children: [] }
+
+    // 找到正确的父级
+    while (stack.length > 0 && stack[stack.length - 1]!.level >= item.level) {
+      stack.pop()
+    }
+
+    if (stack.length === 0) {
+      // 一级标题，直接添加到结果
+      result.push(newItem)
+    } else {
+      // 添加到父级的 children
+      stack[stack.length - 1]!.children.push(newItem)
+    }
+
+    stack.push(newItem)
+  }
+
+  return result
+}
+
+const tocItems = ref<TocItem[]>([])
 
 const scrollToAnchor = (id: string) => {
   const element = document.getElementById(id)
@@ -259,16 +300,33 @@ const clearScrollUiTimers = () => {
 
 let observer: IntersectionObserver | null = null
 
+// 扁平化嵌套 TOC 用于观察和渲染
+function flattenToc(toc: TocItem[]): TocItem[] {
+  const result: TocItem[] = []
+  const stack = [...toc]
+  while (stack.length > 0) {
+    const item = stack.pop()!
+    result.push(item)
+    if (item.children.length > 0) {
+      stack.push(...item.children)
+    }
+  }
+  return result
+}
+
 const setupObserver = () => {
   observer?.disconnect()
 
   if (selectedArticle.value?.content) {
-    tocItems.value = generateToc(selectedArticle.value.content)
+    const flatToc = generateToc(selectedArticle.value.content)
+    tocItems.value = buildNestedToc(flatToc)
   } else {
     tocItems.value = []
   }
 
-  const ids = tocItems.value.map((item) => item.id)
+  // 扁平化用于观察
+  const flatItems = flattenToc(tocItems.value)
+  const ids = flatItems.map((item) => item.id)
   if (!ids.length) return
 
   observer = new IntersectionObserver(
@@ -277,13 +335,20 @@ const setupObserver = () => {
         .filter((entry) => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
 
-      if (!visibleEntries.length) return
+      // 找到当前可见的第一个标题
+      const activeId = visibleEntries.length > 0 ? visibleEntries[0]!.target.id : null
 
-      const activeId = visibleEntries[0]?.target.id
-      tocItems.value = tocItems.value.map((item) => ({
-        ...item,
-        active: item.id === activeId,
-      }))
+      if (!activeId) return
+
+      // 只标记当前标题为 active，不传播给父级
+      const updateActive = (items: TocItem[]): TocItem[] => {
+        return items.map((item) => ({
+          ...item,
+          active: item.id === activeId,
+          children: updateActive(item.children),
+        }))
+      }
+      tocItems.value = updateActive(tocItems.value)
     },
     {
       root: null,
@@ -497,16 +562,36 @@ watch(selectedArticle, () => {
         </div>
 
         <nav class="toc-nav">
-          <a
-            v-for="item in tocItems"
-            :key="item.id"
-            :href="'#' + item.id"
-            class="toc-item"
-            :class="{ active: item.active }"
-            @click.prevent="scrollToAnchor(item.id)"
-          >
-            {{ item.name }}
-          </a>
+          <template v-for="item in tocItems" :key="item.id">
+            <a
+              :href="'#' + item.id"
+              class="toc-item"
+              :class="{ active: item.active, 'toc-item--h1': item.level === 1, 'toc-item--h2': item.level === 2, 'toc-item--h3': item.level === 3 }"
+              @click.prevent="scrollToAnchor(item.id)"
+            >
+              {{ item.name }}
+            </a>
+            <template v-for="child in item.children" :key="child.id">
+              <a
+                :href="'#' + child.id"
+                class="toc-item toc-item--child"
+                :class="{ active: child.active, 'toc-item--h2': child.level === 2, 'toc-item--h3': child.level === 3 }"
+                @click.prevent="scrollToAnchor(child.id)"
+              >
+                {{ child.name }}
+              </a>
+              <template v-for="grandchild in child.children" :key="grandchild.id">
+                <a
+                  :href="'#' + grandchild.id"
+                  class="toc-item toc-item--child toc-item--grandchild"
+                  :class="{ active: grandchild.active, 'toc-item--h3': grandchild.level === 3 }"
+                  @click.prevent="scrollToAnchor(grandchild.id)"
+                >
+                  {{ grandchild.name }}
+                </a>
+              </template>
+            </template>
+          </template>
         </nav>
       </aside>
     </Teleport>
@@ -574,16 +659,36 @@ watch(selectedArticle, () => {
           </div>
 
           <nav class="toc-nav mobile-toc-nav">
-            <a
-              v-for="item in tocItems"
-              :key="item.id"
-              :href="'#' + item.id"
-              class="toc-item"
-              :class="{ active: item.active }"
-              @click.prevent="scrollToAnchor(item.id)"
-            >
-              {{ item.name }}
-            </a>
+            <template v-for="item in tocItems" :key="item.id">
+              <a
+                :href="'#' + item.id"
+                class="toc-item"
+                :class="{ active: item.active, 'toc-item--h1': item.level === 1, 'toc-item--h2': item.level === 2, 'toc-item--h3': item.level === 3 }"
+                @click.prevent="scrollToAnchor(item.id)"
+              >
+                {{ item.name }}
+              </a>
+              <template v-for="child in item.children" :key="child.id">
+                <a
+                  :href="'#' + child.id"
+                  class="toc-item toc-item--child"
+                  :class="{ active: child.active, 'toc-item--h2': child.level === 2, 'toc-item--h3': child.level === 3 }"
+                  @click.prevent="scrollToAnchor(child.id)"
+                >
+                  {{ child.name }}
+                </a>
+                <template v-for="grandchild in child.children" :key="grandchild.id">
+                  <a
+                    :href="'#' + grandchild.id"
+                    class="toc-item toc-item--child toc-item--grandchild"
+                    :class="{ active: grandchild.active, 'toc-item--h3': grandchild.level === 3 }"
+                    @click.prevent="scrollToAnchor(grandchild.id)"
+                  >
+                    {{ grandchild.name }}
+                  </a>
+                </template>
+              </template>
+            </template>
           </nav>
         </div>
       </div>
@@ -1106,6 +1211,38 @@ html.dark .toc-title {
   transform: translateY(-50%);
   background: #5f6e8a;
   border-radius: 999px;
+}
+
+/* 一级标题 */
+.toc-item--h1 {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 二级标题 - 缩进 */
+.toc-item--h2,
+.toc-item--child {
+  padding-left: 24px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* 三级标题 - 进一步缩进 */
+.toc-item--h3,
+.toc-item--grandchild {
+  padding-left: 36px;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+html.dark .toc-item--h2,
+html.dark .toc-item--child {
+  color: #a9b6c8;
+}
+
+html.dark .toc-item--h3,
+html.dark .toc-item--grandchild {
+  color: #8a96a8;
 }
 
 html.dark .toc-item {
