@@ -601,24 +601,18 @@ onUnmounted(() => {
 
 <style scoped>
 .topbar {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 2010;
-  padding: 26px 52px 0;
+  padding: 1rem 3rem;
+  background: transparent;  
+  backdrop-filter: none;
+
 }
 
-.topbar.knowledge-style {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 1rem 3rem;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
+
 
 .header-nav {
   display: flex;

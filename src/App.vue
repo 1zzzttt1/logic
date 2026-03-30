@@ -132,11 +132,6 @@ html.dark {
   --menu-line-shadow: 0 1px 10px rgba(0, 0, 0, 0.16);
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
-}
 
 * {
   box-sizing: border-box;
@@ -171,8 +166,6 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 html,
 body,
 #app {
-  width: 100%;
-  min-height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -247,7 +240,6 @@ html.dark body .site-shell {
 
 .site-shell {
   position: relative;
-  min-height: 100vh;
   isolation: isolate;
   background:
     radial-gradient(
@@ -421,4 +413,7 @@ html.dark .ambient-overlay::after {
     background: #f7f5f1 !important;
   }
 }
+
+
+
 </style>

@@ -7,19 +7,31 @@ const DESKTOP_BREAKPOINT = 948
 const TOC_BREAKPOINT = 1200
 
 const isSidebarCollapsed = ref(false)
-const showMobileMenu = ref(false)
+
+const showMobileSidebar = ref(false)
+const showMobileToc = ref(false)
 
 const selectedCategory = ref('ai-basics')
 const selectedArticle = ref<KnowledgeArticle | null>(null)
 
-/**
- * 单独控制一级菜单展开状态
- * 这样“是否展开”和“当前选中文章属于哪个分类”就解耦了
- */
 const expandedCategoryIds = ref<string[]>([])
 
 const isDesktopSidebarVisible = ref(false)
 const isDesktopTocVisible = ref(false)
+
+const scrollProgress = ref(0)
+const showBackToTop = ref(false)
+const showBackToTopArrow = ref(false)
+
+let scrollIdleTimer: number | null = null
+let scrollRafId: number | null = null
+
+const progressRadius = 24
+const progressCircumference = 2 * Math.PI * progressRadius
+
+const progressDashOffset = computed(() => {
+  return progressCircumference * (1 - scrollProgress.value / 100)
+})
 
 const updateResponsiveState = () => {
   if (typeof window === 'undefined') return
@@ -31,16 +43,46 @@ const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
 
-const openMobileMenu = () => {
-  showMobileMenu.value = true
+const lockBodyScroll = () => {
   document.body.style.overflow = 'hidden'
   document.documentElement.style.overflow = 'hidden'
 }
 
-const closeMobileMenu = () => {
-  showMobileMenu.value = false
+const unlockBodyScroll = () => {
   document.body.style.overflow = ''
   document.documentElement.style.overflow = ''
+}
+
+const openMobileSidebar = () => {
+  showMobileToc.value = false
+  showMobileSidebar.value = true
+  lockBodyScroll()
+}
+
+const closeMobileSidebar = () => {
+  showMobileSidebar.value = false
+  if (!showMobileToc.value) {
+    unlockBodyScroll()
+  }
+}
+
+const openMobileToc = () => {
+  showMobileSidebar.value = false
+  showMobileToc.value = true
+  lockBodyScroll()
+}
+
+const closeMobileToc = () => {
+  showMobileToc.value = false
+  if (!showMobileSidebar.value) {
+    unlockBodyScroll()
+  }
+}
+
+const closeAllMobilePanels = () => {
+  showMobileSidebar.value = false
+  showMobileToc.value = false
+  unlockBodyScroll()
 }
 
 const sidebarNav = computed(() => {
@@ -56,16 +98,12 @@ const sidebarNav = computed(() => {
         path: `#${category.id}/${article.id}`,
         active:
           selectedCategory.value === category.id &&
-          selectedArticle.value?.id === article.id
-      }))
-    }))
+          selectedArticle.value?.id === article.id,
+      })),
+    })),
   }
 })
 
-/**
- * 点击一级菜单：
- * 只负责展开 / 收起，不再直接跳转文章
- */
 const toggleGroup = (index: number) => {
   const category = knowledgeData[index]
   if (!category) return
@@ -80,14 +118,9 @@ const toggleGroup = (index: number) => {
   }
 }
 
-/**
- * 点击二级菜单：
- * 才真正进入文章
- */
 const selectArticle = (categoryId: string, articleId: string) => {
   selectedCategory.value = categoryId
 
-  // 进入文章时，自动保证所属一级菜单展开
   if (!expandedCategoryIds.value.includes(categoryId)) {
     expandedCategoryIds.value = [...expandedCategoryIds.value, categoryId]
   }
@@ -97,6 +130,7 @@ const selectArticle = (categoryId: string, articleId: string) => {
 
   nextTick(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
+    updateScrollProgress()
   })
 }
 
@@ -105,7 +139,7 @@ const handleNavClick = (path: string) => {
   if (match && match[1] && match[2]) {
     selectArticle(match[1], match[2])
   }
-  closeMobileMenu()
+  closeAllMobilePanels()
 }
 
 function slugifyHeading(text: string) {
@@ -127,7 +161,7 @@ function generateToc(content: string): { name: string; id: string; active: boole
     toc.push({
       name: text,
       id,
-      active: index === 0
+      active: index === 0,
     })
   })
 
@@ -145,10 +179,78 @@ const scrollToAnchor = (id: string) => {
 
   window.scrollTo({
     top: offsetPosition,
-    behavior: 'smooth'
+    behavior: 'smooth',
   })
 
-  closeMobileMenu()
+  closeAllMobilePanels()
+}
+
+const updateScrollProgress = () => {
+  const scrollTop = window.scrollY || window.pageYOffset || 0
+  const doc = document.documentElement
+  const scrollHeight = doc.scrollHeight
+  const clientHeight = window.innerHeight
+  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
+
+  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
+  scrollProgress.value = Math.round(progress * 100)
+
+  showBackToTop.value = scrollTop > 120
+
+  if (!showBackToTop.value) {
+    showBackToTopArrow.value = false
+  }
+}
+
+const handleScrollProgress = () => {
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId)
+  }
+
+  scrollRafId = window.requestAnimationFrame(() => {
+    updateScrollProgress()
+
+    if (!showBackToTop.value) return
+
+    showBackToTopArrow.value = false
+
+    if (scrollIdleTimer !== null) {
+      window.clearTimeout(scrollIdleTimer)
+    }
+
+    scrollIdleTimer = window.setTimeout(() => {
+      showBackToTopArrow.value = true
+    }, 420)
+  })
+}
+
+const scrollToTop = () => {
+  const lenis = (window as any).__lenis
+
+  if (lenis) {
+    lenis.scrollTo(0, {
+      duration: 1.2,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3),
+    })
+    return
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
+}
+
+const clearScrollUiTimers = () => {
+  if (scrollIdleTimer !== null) {
+    window.clearTimeout(scrollIdleTimer)
+    scrollIdleTimer = null
+  }
+
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId)
+    scrollRafId = null
+  }
 }
 
 let observer: IntersectionObserver | null = null
@@ -176,13 +278,13 @@ const setupObserver = () => {
       const activeId = visibleEntries[0]?.target.id
       tocItems.value = tocItems.value.map((item) => ({
         ...item,
-        active: item.id === activeId
+        active: item.id === activeId,
       }))
     },
     {
       root: null,
       rootMargin: '-110px 0px -65% 0px',
-      threshold: 0
+      threshold: 0,
     }
   )
 
@@ -262,11 +364,19 @@ const goToNextArticle = () => {
 
 const handleResize = () => {
   updateResponsiveState()
+  updateScrollProgress()
+
+  if (window.innerWidth >= DESKTOP_BREAKPOINT) {
+    closeAllMobilePanels()
+  }
 }
 
 onMounted(() => {
   updateResponsiveState()
+  updateScrollProgress()
+
   window.addEventListener('resize', handleResize)
+  window.addEventListener('scroll', handleScrollProgress, { passive: true })
 
   const firstCategory = knowledgeData[0]
   if (firstCategory?.articles?.[0]) {
@@ -276,20 +386,27 @@ onMounted(() => {
   }
 
   nextTick(() => {
-    setTimeout(setupObserver, 180)
+    setTimeout(() => {
+      setupObserver()
+      updateScrollProgress()
+    }, 180)
   })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('scroll', handleScrollProgress)
   observer?.disconnect()
-  document.body.style.overflow = ''
-  document.documentElement.style.overflow = ''
+  unlockBodyScroll()
+  clearScrollUiTimers()
 })
 
 watch(selectedArticle, () => {
   nextTick(() => {
-    setTimeout(setupObserver, 180)
+    setTimeout(() => {
+      setupObserver()
+      updateScrollProgress()
+    }, 180)
   })
 })
 </script>
@@ -302,8 +419,6 @@ watch(selectedArticle, () => {
         class="desktop-sidebar-left"
         :class="{ collapsed: isSidebarCollapsed }"
       >
-       
-
         <template v-if="!isSidebarCollapsed">
           <div class="sidebar-header">
             <p class="sidebar-series">知识库</p>
@@ -366,18 +481,15 @@ watch(selectedArticle, () => {
 
     <Teleport to="body">
       <div
-        class="mobile-menu-overlay"
-        :class="{ active: showMobileMenu }"
-        @click="closeMobileMenu"
+        class="mobile-panel-overlay"
+        :class="{ active: showMobileSidebar }"
+        @click="closeMobileSidebar"
       >
-        <div class="mobile-menu-drawer" @click.stop>
-          <div class="mobile-menu-header">
-            <div>
-              <p class="sidebar-series">知识库</p>
-              <h3 class="sidebar-title">教程目录</h3>
-            </div>
-            <button class="mobile-menu-close" type="button" @click="closeMobileMenu">
-              <span class="material-symbols-outlined">arrow_back</span>
+        <div class="mobile-panel-drawer mobile-panel-drawer--left" @click.stop>
+          <div class="mobile-panel-header">
+            <h3 class="mobile-panel-title">教程目录</h3>
+            <button class="mobile-panel-close" type="button" @click="closeMobileSidebar">
+              <span class="material-symbols-outlined">close</span>
             </button>
           </div>
 
@@ -411,40 +523,64 @@ watch(selectedArticle, () => {
               </div>
             </div>
           </nav>
-
-          <div v-if="tocItems.length > 0" class="mobile-toc">
-            <div class="toc-head">
-              <p class="toc-kicker">On this page</p>
-              <h4 class="toc-title">本章目录</h4>
-            </div>
-
-            <nav class="toc-nav">
-              <a
-                v-for="item in tocItems"
-                :key="item.id"
-                :href="'#' + item.id"
-                class="toc-item"
-                :class="{ active: item.active }"
-                @click.prevent="scrollToAnchor(item.id)"
-              >
-                {{ item.name }}
-              </a>
-            </nav>
-          </div>
         </div>
       </div>
+    </Teleport>
 
-      <button
-        v-show="!showMobileMenu && !isDesktopSidebarVisible"
-        class="mobile-menu-fab"
-        type="button"
-        @click="openMobileMenu"
+    <Teleport to="body">
+      <div
+        class="mobile-panel-overlay"
+        :class="{ active: showMobileToc }"
+        @click="closeMobileToc"
       >
-        <span>目录</span>
-      </button>
+        <div class="mobile-panel-drawer mobile-panel-drawer--right" @click.stop>
+          <div class="mobile-panel-header">
+            <h3 class="mobile-panel-title">页面导航</h3>
+            <button class="mobile-panel-close" type="button" @click="closeMobileToc">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <nav class="toc-nav mobile-toc-nav">
+            <a
+              v-for="item in tocItems"
+              :key="item.id"
+              :href="'#' + item.id"
+              class="toc-item"
+              :class="{ active: item.active }"
+              @click.prevent="scrollToAnchor(item.id)"
+            >
+              {{ item.name }}
+            </a>
+          </nav>
+        </div>
+      </div>
     </Teleport>
 
     <main class="main-content">
+      <Teleport to=".page-content">
+        <div v-if="!isDesktopSidebarVisible" class="mobile-top-nav">
+          <button
+            class="mobile-top-nav__btn mobile-top-nav__btn--left"
+            type="button"
+            @click="openMobileSidebar"
+          >
+            <span class="material-symbols-outlined">menu</span>
+            <span>菜单</span>
+          </button>
+
+          <button
+            class="mobile-top-nav__btn mobile-top-nav__btn--right"
+            type="button"
+            @click="openMobileToc"
+            :disabled="tocItems.length === 0"
+          >
+            <span>页面导航</span>
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </Teleport>
+
       <header class="article-header">
         <nav class="breadcrumb">
           <span>知识库</span>
@@ -500,7 +636,55 @@ watch(selectedArticle, () => {
         </a>
       </footer>
     </main>
-  </div>
+
+    <Teleport to="body">
+    <button
+      v-show="showBackToTop"
+      class="back-to-top-btn back-to-top-ring"
+      type="button"
+      aria-label="返回顶部"
+      @click="scrollToTop"
+    >
+      <span class="back-to-top-ring__inner">
+        <svg
+          class="back-to-top-ring__svg"
+          viewBox="0 0 56 56"
+          aria-hidden="true"
+        >
+          <circle
+            class="back-to-top-ring__track"
+            cx="28"
+            cy="28"
+            :r="progressRadius"
+          />
+          <circle
+            class="back-to-top-ring__progress"
+            cx="28"
+            cy="28"
+            :r="progressRadius"
+            :stroke-dasharray="progressCircumference"
+            :stroke-dashoffset="progressDashOffset"
+          />
+        </svg>
+
+        <span
+          v-if="!showBackToTopArrow"
+          class="back-to-top-ring__label"
+        >
+          {{ scrollProgress }}%
+        </span>
+
+        <span
+          v-else
+          class="material-symbols-outlined back-to-top-ring__icon"
+        >
+          arrow_upward
+        </span>
+      </span>
+    </button>
+    </Teleport>
+ 
+ </div>
 </template>
 
 <style scoped>
@@ -522,7 +706,6 @@ watch(selectedArticle, () => {
 .main-content {
   width: min(100%, var(--content-max));
   margin: 0 auto;
-  padding: calc(var(--header-offset) + 40px) 24px 72px;
   box-sizing: border-box;
   overflow: visible;
 }
@@ -533,7 +716,6 @@ watch(selectedArticle, () => {
     max-width: var(--content-max);
     margin-left: calc(var(--left-width) + var(--gutter-left));
     margin-right: 40px;
-    padding: calc(var(--header-offset) + 40px) 24px 72px;
     transition: margin-left 0.28s ease;
   }
 
@@ -655,38 +837,6 @@ html.dark .article-body {
 html.dark .desktop-sidebar-left {
   background: var(--surface-dark);
   border-color: rgba(166, 185, 212, 0.14);
-}
-
-.collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 34px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  color: #7d786f;
-  cursor: pointer;
-  margin-bottom: 14px;
-  transition: background 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
-}
-
-.collapse-btn:hover {
-  background: rgba(95, 110, 138, 0.08);
-}
-
-html.dark .collapse-btn {
-  color: #a6afbf;
-}
-
-html.dark .collapse-btn:hover {
-  background: rgba(95, 110, 138, 0.18);
-}
-
-.collapse-btn .material-symbols-outlined {
-  font-size: 20px;
 }
 
 .sidebar-header {
@@ -847,26 +997,15 @@ html.dark .nav-item.active {
   box-sizing: border-box;
   z-index: 10;
   border-left: 1px solid rgba(186, 184, 184, 0.42);
- 
 }
 
-html.dark .desktop-sidebar-right{
+html.dark .desktop-sidebar-right {
   border-color: rgba(166, 185, 212, 0.14);
 }
-
 
 .toc-head {
   margin-bottom: 14px;
   padding-left: 2px;
-}
-
-.toc-kicker {
-  margin: 0 0 4px;
-  font-family: 'Work Sans', sans-serif;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #928c82;
 }
 
 .toc-title {
@@ -875,10 +1014,6 @@ html.dark .desktop-sidebar-right{
   font-size: 15px;
   font-weight: 700;
   color: #4a5a76;
-}
-
-html.dark .toc-kicker {
-  color: #93a1b6;
 }
 
 html.dark .toc-title {
@@ -1105,162 +1240,323 @@ html.dark .nav-link-text {
   color: #d7e2f1;
 }
 
-.mobile-menu-overlay {
+.mobile-top-nav {
+  display: none;
+}
+
+.mobile-panel-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 18, 24, 0.42);
-  z-index: 2000;
+  background: rgba(15, 18, 24, 0.26);
+  z-index: 2200;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.28s ease, visibility 0.28s ease;
+  transition: opacity 0.26s ease, visibility 0.26s ease;
 }
 
-.mobile-menu-overlay.active {
+.mobile-panel-overlay.active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 
-.mobile-menu-drawer {
+.mobile-panel-drawer {
   position: absolute;
   top: 0;
-  left: 0;
-  width: min(84vw, 21rem);
+  width: min(86vw, 23rem);
   height: 100dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
-  background: rgba(253, 252, 251, 0.96);
-  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.12);
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-  padding-top: 7rem;
+  padding: calc(88px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: rgba(253, 252, 251, 0.98);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+  transition: transform 0.28s ease;
 }
 
-.mobile-menu-overlay.active .mobile-menu-drawer {
-  transform: translateX(0);
-}
-
-html.dark .mobile-menu-drawer {
+html.dark .mobile-panel-drawer {
   background: rgba(27, 39, 57, 0.98);
 }
 
-.mobile-menu-header {
+.mobile-panel-drawer--left {
+  left: 0;
+  transform: translateX(-100%);
+}
+
+.mobile-panel-overlay.active .mobile-panel-drawer--left {
+  transform: translateX(0);
+}
+
+.mobile-panel-drawer--right {
+  right: 0;
+  transform: translateX(100%);
+}
+
+.mobile-panel-overlay.active .mobile-panel-drawer--right {
+  transform: translateX(0);
+}
+
+.mobile-panel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 28px;
-  padding-bottom: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
   border-bottom: 1px solid rgba(214, 209, 201, 0.5);
 }
 
-html.dark .mobile-menu-header {
-  border-bottom-color: rgba(214, 209, 201, 0.2);
+html.dark .mobile-panel-header {
+  border-bottom-color: rgba(166, 185, 212, 0.14);
 }
 
-.mobile-menu-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
+.mobile-panel-title {
+  margin: 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #475671;
+}
+
+html.dark .mobile-panel-title {
+  color: #d7e2f1;
+}
+
+.mobile-panel-close {
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 50%;
+  border-radius: 999px;
   background: transparent;
   color: #7a766f;
-  cursor: pointer;
-}
-
-html.dark .mobile-menu-close {
-  color: #a6afbf;
-}
-
-.mobile-toc {
-  margin-top: 30px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(214, 209, 201, 0.5);
-}
-
-html.dark .mobile-toc {
-  border-top-color: rgba(214, 209, 201, 0.2);
-}
-
-.mobile-menu-fab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  right: 20px;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  min-width: 74px;
-  height: 48px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 999px;
-  background: #5f6e8a;
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(31, 31, 28, 0.16);
   cursor: pointer;
-  z-index: 10;
-  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.mobile-menu-fab:hover {
-  transform: translateY(-2px);
-  background: #475671;
+html.dark .mobile-panel-close {
+  color: #a6afbf;
 }
 
-.mobile-menu-fab span {
+.mobile-toc-nav {
+  gap: 10px;
+}
+
+.back-to-top-btn {
+  position: fixed;
+  right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 2300;
+  transition:
+    transform 0.24s ease,
+    opacity 0.24s ease;
+}
+
+.back-to-top-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.back-to-top-btn:active {
+  transform: scale(0.98);
+}
+
+.back-to-top-ring__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.back-to-top-ring__svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.back-to-top-ring__track,
+.back-to-top-ring__progress {
+  fill: none;
+  stroke-width: 3;
+}
+
+.back-to-top-ring__track {
+  stroke: rgba(0, 0, 0, 0.12);
+}
+
+.back-to-top-ring__progress {
+  stroke: #4b4b47;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.18s linear;
+}
+
+.back-to-top-ring__label,
+.back-to-top-ring__icon {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b4b47;
+}
+
+.back-to-top-ring__label {
+  font-family: 'Work Sans', sans-serif;
   font-size: 14px;
+  line-height: 1;
   font-weight: 600;
 }
 
-html.dark .mobile-menu-fab {
-  background: #a6b9d4;
-  color: #1b2739;
+.back-to-top-ring__icon {
+  font-size: 20px;
 }
 
-@media (min-width: 948px) {
-  .mobile-menu-fab {
-    display: none;
+html.dark .back-to-top-ring__track {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+html.dark .back-to-top-ring__progress {
+  stroke: rgba(255, 255, 255, 0.82);
+}
+
+html.dark .back-to-top-ring__label,
+html.dark .back-to-top-ring__icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 947px) {
+  .knowledge-page {
+    overflow: visible;
+  }
+
+  .main-content {
+    width: 100%;
+    overflow: visible;
+    padding-top: 5rem;
+  }
+
+  .mobile-top-nav {
+    position: sticky;
+    top: 5rem;
+    z-index: 2010;
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    margin-bottom: 28px;
+    background: rgba(247, 245, 241, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(165, 162, 156, 0.5);
+    border-bottom: 1px solid rgba(214, 209, 201, 0.5);
+  }
+
+  html.dark .mobile-top-nav {
+    background: rgba(20, 30, 45, 0.88);
+    border-top-color: rgba(166, 185, 212, 0.12);
+    border-bottom-color: rgba(166, 185, 212, 0.14);
+  }
+
+  .mobile-top-nav__btn {
+    height: 48px;
+    padding: 0 16px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6f6a62;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .mobile-top-nav__btn--left {
+    justify-content: flex-start;
+    border-right: 1px solid rgba(214, 209, 201, 0.5);
+  }
+
+  .mobile-top-nav__btn--right {
+    justify-content: flex-end;
+  }
+
+  .mobile-top-nav__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  html.dark .mobile-top-nav__btn {
+    color: #c0cadb;
+  }
+
+  html.dark .mobile-top-nav__btn--left {
+    border-right-color: rgba(166, 185, 212, 0.14);
+  }
+
+  .article-header,
+  .article-body,
+  .article-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .article-header {
+    margin-top: 0;
+    margin-bottom: 36px;
+  }
+
+  .article-title {
+    font-size: 28px;
+    line-height: 1.22;
+    max-width: none;
+  }
+
+  .article-summary {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .article-hero {
+    margin-bottom: 36px;
+    border-radius: 14px;
+  }
+
+  .article-footer {
+    margin-top: 56px;
+    gap: 14px;
+  }
+
+  .nav-prev,
+  .nav-next {
+    max-width: 48%;
+  }
+
+  .back-to-top-btn {
+    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    width: 58px;
+    height: 58px;
+  }
+
+  .back-to-top-ring__label {
+    font-size: 12px;
+  }
+
+  .back-to-top-ring__icon {
+    font-size: 18px;
   }
 }
 
 .empty-content {
   padding: 32px;
   text-align: center;
-  color: #68645d;
-}
-
-html.dark .empty-content {
-  color: #a6afbf;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar,
-.desktop-sidebar-right::-webkit-scrollbar,
-.mobile-menu-drawer::-webkit-scrollbar {
-  width: 4px;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-track,
-.desktop-sidebar-right::-webkit-scrollbar-track,
-.mobile-menu-drawer::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-thumb,
-.desktop-sidebar-right::-webkit-scrollbar-thumb,
-.mobile-menu-drawer::-webkit-scrollbar-thumb {
-  background: #d8d2c8;
-  border-radius: 999px;
-}
-
-html.dark .desktop-sidebar-left::-webkit-scrollbar-thumb,
-html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb,
-html.dark .mobile-menu-drawer::-webkit-scrollbar-thumb {
-  background: rgba(166, 185, 212, 0.34);
 }
 </style>
