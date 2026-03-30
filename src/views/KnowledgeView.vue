@@ -566,7 +566,7 @@ watch(selectedArticle, () => {
             @click="openMobileSidebar"
           >
             <span class="material-symbols-outlined">menu</span>
-            <span>菜单</span>
+            <span>教程目录</span>
           </button>
 
           <button
@@ -717,6 +717,7 @@ watch(selectedArticle, () => {
     margin-left: calc(var(--left-width) + var(--gutter-left));
     margin-right: 40px;
     transition: margin-left 0.28s ease;
+    padding-top: 6rem;
   }
 
   .knowledge-page.collapsed .main-content {
@@ -1346,8 +1347,8 @@ html.dark .mobile-panel-close {
 
 .back-to-top-btn {
   position: fixed;
-  right: 24px;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  right: 2rem;
+  bottom: 2rem;
   width: 64px;
   height: 64px;
   padding: 0;
@@ -1540,8 +1541,8 @@ html.dark .back-to-top-ring__icon {
   }
 
   .back-to-top-btn {
-    right: 16px;
-    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    right: 2rem;
+    bottom: 4rem;
     width: 58px;
     height: 58px;
   }
