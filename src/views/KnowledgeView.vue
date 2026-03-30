@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
+import ImagePreview from '@/components/ImagePreview.vue'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -22,6 +23,9 @@ const isDesktopTocVisible = ref(false)
 const scrollProgress = ref(0)
 const showBackToTop = ref(false)
 const showBackToTopArrow = ref(false)
+
+const showImagePreview = ref(false)
+const previewImageSrc = ref('')
 
 let scrollIdleTimer: number | null = null
 let scrollRafId: number | null = null
@@ -297,6 +301,8 @@ const setupObserver = () => {
 const renderMarkdown = (content: string): string => {
   if (!content) return ''
 
+  const BASE_PATH = '/logic/'
+
   let html = content
 
   html = html.replace(/^### (.*$)/gim, (_match, p1) => {
@@ -312,6 +318,18 @@ const renderMarkdown = (content: string): string => {
   html = html.replace(/^# (.*$)/gim, (_match, p1) => {
     const id = slugifyHeading(p1)
     return `<h1 class="section-title" id="${id}">${p1}</h1>`
+  })
+
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
+    let normalizedSrc: string
+    if (src.startsWith('http') || src.startsWith('/logic/')) {
+      normalizedSrc = src
+    } else if (src.startsWith('/')) {
+      normalizedSrc = BASE_PATH + src.slice(1)
+    } else {
+      normalizedSrc = BASE_PATH + src.replace(/^\.\//, '')
+    }
+    return `<img src="${normalizedSrc}" alt="${alt}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
   })
 
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -369,6 +387,20 @@ const handleResize = () => {
   if (window.innerWidth >= DESKTOP_BREAKPOINT) {
     closeAllMobilePanels()
   }
+}
+
+const handleImageClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  const img = target.closest('.markdown-image') as HTMLElement
+  if (img && img.dataset.previewSrc) {
+    previewImageSrc.value = img.dataset.previewSrc
+    showImagePreview.value = true
+  }
+}
+
+const closeImagePreview = () => {
+  showImagePreview.value = false
+  previewImageSrc.value = ''
 }
 
 onMounted(() => {
@@ -609,6 +641,7 @@ watch(selectedArticle, () => {
           v-if="selectedArticle"
           class="markdown-content"
           v-html="renderMarkdown(selectedArticle.content)"
+          @click="handleImageClick"
         ></div>
 
         <div v-else class="empty-content">
@@ -683,8 +716,14 @@ watch(selectedArticle, () => {
       </span>
     </button>
     </Teleport>
- 
- </div>
+
+    <ImagePreview
+      :show="showImagePreview"
+      :src="previewImageSrc"
+      @close="closeImagePreview"
+    />
+
+  </div>
 </template>
 
 <style scoped>
@@ -1143,6 +1182,15 @@ html.dark .toc-item.active::before {
 .markdown-content :deep(strong) {
   font-weight: 700;
   color: #465774;
+}
+
+.markdown-content :deep(.markdown-image) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .markdown-content :deep(blockquote) {

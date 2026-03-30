@@ -1,14 +1,15 @@
 ---
-title: Claude Code 入门指南
+title: Claude Code 如何工作
 description: 掌握 Claude Code 的基本使用方法
 order: 1
 ---
 
-# Claude Code 入门指南
+# 1. Claude Code 入门指南
 
-## 什么是 Claude Code？
+## 2. 什么是 Claude Code？
 
 Claude Code 是 Anthropic 开发的 AI 编程助手，它能够理解代码上下文，帮助开发者编写、审查和调试代码。
+![图1](./images/knowledge/claude-code/1-1.png)
 
 ## 安装与配置
 
