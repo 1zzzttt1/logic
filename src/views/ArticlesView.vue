@@ -67,7 +67,7 @@ const goToDetail = (id: string) => {
 <style scoped>
 .articles-page {
   min-height: calc(100vh - 80px);
-  padding: 3rem 1.5rem;
+  padding: 7rem 1.5rem 0;
   max-width: 48rem;
   margin: 0 auto;
 }
@@ -212,7 +212,7 @@ html.dark .article-source {
 
 @media (min-width: 768px) {
   .articles-page {
-    padding: 4rem 2rem;
+    padding: 7rem 2rem 0;
   }
 
   .page-title {

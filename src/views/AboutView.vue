@@ -78,7 +78,7 @@ const openGitHub = () => {
 <style scoped>
 .about-page {
   min-height: calc(100vh - 80px);
-  padding: 3rem 1.5rem;
+  padding: 9rem 1.5rem 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,7 +265,7 @@ html.dark .footer-note p {
 
 @media (min-width: 768px) {
   .about-page {
-    padding: 4rem 2rem;
+    padding: 8rem 2rem 1rem;
   }
 
   .greeting {

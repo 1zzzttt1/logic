@@ -1180,6 +1180,7 @@ html.dark .markdown-content :deep(blockquote) {
 .article-footer {
   margin-top: 84px;
   padding-top: 34px;
+  padding-bottom: 1rem;
   border-top: 1px solid rgba(197, 198, 206, 0.15);
   display: flex;
   justify-content: space-between;
@@ -1348,7 +1349,7 @@ html.dark .mobile-panel-close {
 .back-to-top-btn {
   position: fixed;
   right: 2rem;
-  bottom: 2rem;
+  bottom: 4.5rem;
   width: 64px;
   height: 64px;
   padding: 0;
@@ -1507,6 +1508,7 @@ html.dark .back-to-top-ring__icon {
   .article-footer {
     padding-left: 24px;
     padding-right: 24px;
+    padding-bottom: 24px;
   }
 
   .article-header {
@@ -1542,7 +1544,7 @@ html.dark .back-to-top-ring__icon {
 
   .back-to-top-btn {
     right: 2rem;
-    bottom: 4rem;
+    bottom: 5rem;
     width: 58px;
     height: 58px;
   }
