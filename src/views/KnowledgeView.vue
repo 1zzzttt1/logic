@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { marked } from 'marked'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
 import ImagePreview from '@/components/ImagePreview.vue'
 
@@ -368,66 +369,45 @@ const renderMarkdown = (content: string): string => {
 
   const BASE_PATH = '/logic/'
 
-  let html = content
-
-  html = html.replace(/^###\s+(.*$)/gim, (_match, p1) => {
-    const id = slugifyHeading(p1)
-    return `<h3 class="section-title" id="${id}">${p1}</h3>`
+  // 配置 marked
+  marked.setOptions({
+    gfm: true,
+    breaks: false,
   })
 
-  html = html.replace(/^##\s+(.*$)/gim, (_match, p1) => {
-    const id = slugifyHeading(p1)
-    return `<h2 class="section-title" id="${id}">${p1}</h2>`
-  })
+  // 自定义渲染器
+  const renderer = new marked.Renderer()
 
-  html = html.replace(/^#\s+(.*$)/gim, (_match, p1) => {
-    const id = slugifyHeading(p1)
-    return `<h1 class="section-title" id="${id}">${p1}</h1>`
-  })
+  // 自定义标题渲染，添加 ID 和 class
+  renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
+    const id = slugifyHeading(text)
+    return `<h${depth} class="section-title" id="${id}">${text}</h${depth}>`
+  }
 
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
-    let normalizedSrc: string
-    if (src.startsWith('http') || src.startsWith('/logic/')) {
-      normalizedSrc = src
-    } else if (src.startsWith('/')) {
-      normalizedSrc = BASE_PATH + src.slice(1)
-    } else {
-      normalizedSrc = BASE_PATH + src.replace(/^\.\//, '')
-    }
-    return `<img src="${normalizedSrc}" alt="${alt}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
-  })
-
-  // 链接处理
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
-    const isExternal = url.startsWith('http')
+  renderer.link = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+    const isExternal = href.startsWith('http')
     const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
     const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
-    return `<a href="${url}"${target}>${text}${icon}</a>`
-  })
+    return `<a href="${href}"${target}>${text}${icon}</a>`
+  }
 
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  // 自定义图片渲染，添加预览功能
+  renderer.image = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+    let normalizedSrc: string
+    if (href.startsWith('http') || href.startsWith('/logic/')) {
+      normalizedSrc = href
+    } else if (href.startsWith('/')) {
+      normalizedSrc = BASE_PATH + href.slice(1)
+    } else {
+      normalizedSrc = BASE_PATH + href.replace(/^\.\//, '')
+    }
+    return `<img src="${normalizedSrc}" alt="${text || ''}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
+  }
 
-  // 先提取标题和引用块，避免被后续列表处理干扰
-  html = html.replace(/<h([1-3]) class="section-title" id="([^"]*)">([\s\S]*?)<\/h\1>/g, '___HEADING___$1|$2|$3___END___')
-  html = html.replace(/<blockquote([\s\S]*?)>([\s\S]*?)<\/blockquote>/g, '___BLOCKQUOTE___$1$2___END_BLOCKQUOTE___')
+  marked.use({ renderer })
 
-  // 列表处理 - 使用更严格的匹配，排除空行后以 - 或 * 开头的行
-  html = html.replace(/(?<=\n)- (.*$)/gim, '<li>$1</li>')
-  html = html.replace(/(?<=\n)\* (?![#])(.*$)/gim, '<li>$1</li>')
-  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-
-  html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
-  html = html.replace(/^> (.*$)/gim, '<blockquote class="expert-tip"><p>$1</p></blockquote>')
-
-  html = html.replace(/\n\n/g, '</p><p class="section-text">')
-  html = html.replace(/\n/g, '<br>')
-  html = '<p class="section-text">' + html + '</p>'
-  html = html.replace(/<p class="section-text"><\/p>/g, '')
-
-  // 还原标题元素
-  html = html.replace(/___HEADING___(\d+)\|([^|]*)\|([\s\S]*?)___END___/g, '<h$1 class="section-title" id="$2">$3</h$1>')
-  html = html.replace(/___BLOCKQUOTE___(.*?)___END_BLOCKQUOTE___/g, '<blockquote$1>$2</blockquote>')
+  // 使用 marked 解析
+  const html = marked.parse(content) as string
 
   return html
 }
