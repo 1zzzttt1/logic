@@ -164,12 +164,11 @@ type TocItem = {
 
 function generateToc(content: string): TocItem[] {
   const toc: TocItem[] = []
-  // 匹配 # ## ### 并捕获层级
   const headingRegex = /^(#{1,3})\s+(.+)$/gm
   let match: RegExpExecArray | null
 
   while ((match = headingRegex.exec(content)) !== null) {
-    const level = match[1]!.length // 1, 2, or 3
+    const level = match[1]!.length
     const text = match[2]!.trim()
     const id = slugifyHeading(text)
     if (!id) continue
@@ -186,25 +185,20 @@ function generateToc(content: string): TocItem[] {
   return toc
 }
 
-// 将扁平 TOC 构建为嵌套结构
 function buildNestedToc(flatToc: TocItem[]): TocItem[] {
   const result: TocItem[] = []
   const stack: TocItem[] = []
 
   for (const item of flatToc) {
-    // 创建新 item
     const newItem: TocItem = { ...item, children: [] }
 
-    // 找到正确的父级
     while (stack.length > 0 && stack[stack.length - 1]!.level >= item.level) {
       stack.pop()
     }
 
     if (stack.length === 0) {
-      // 一级标题，直接添加到结果
       result.push(newItem)
     } else {
-      // 添加到父级的 children
       stack[stack.length - 1]!.children.push(newItem)
     }
 
@@ -223,10 +217,18 @@ const scrollToAnchor = (id: string) => {
   const elementPosition = element.getBoundingClientRect().top
   const offsetPosition = elementPosition + window.pageYOffset - HEADER_HEIGHT - 16
 
-  window.scrollTo({
-    top: offsetPosition,
-    behavior: 'smooth',
-  })
+  const lenis = (window as any).__lenis
+  if (lenis) {
+    lenis.scrollTo(offsetPosition, {
+      duration: 1,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3),
+    })
+  } else {
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth',
+    })
+  }
 
   closeAllMobilePanels()
 }
@@ -301,17 +303,17 @@ const clearScrollUiTimers = () => {
 
 let observer: IntersectionObserver | null = null
 
-// 扁平化嵌套 TOC 用于观察和渲染
 function flattenToc(toc: TocItem[]): TocItem[] {
   const result: TocItem[] = []
-  const stack = [...toc]
-  while (stack.length > 0) {
-    const item = stack.pop()!
-    result.push(item)
-    if (item.children.length > 0) {
-      stack.push(...item.children)
+  const walk = (items: TocItem[]) => {
+    for (const item of items) {
+      result.push(item)
+      if (item.children.length > 0) {
+        walk(item.children)
+      }
     }
   }
+  walk(toc)
   return result
 }
 
@@ -325,7 +327,6 @@ const setupObserver = () => {
     tocItems.value = []
   }
 
-  // 扁平化用于观察
   const flatItems = flattenToc(tocItems.value)
   const ids = flatItems.map((item) => item.id)
   if (!ids.length) return
@@ -336,12 +337,9 @@ const setupObserver = () => {
         .filter((entry) => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
 
-      // 找到当前可见的第一个标题
       const activeId = visibleEntries.length > 0 ? visibleEntries[0]!.target.id : null
-
       if (!activeId) return
 
-      // 只标记当前标题为 active，不传播给父级
       const updateActive = (items: TocItem[]): TocItem[] => {
         return items.map((item) => ({
           ...item,
@@ -349,6 +347,7 @@ const setupObserver = () => {
           children: updateActive(item.children),
         }))
       }
+
       tocItems.value = updateActive(tocItems.value)
     },
     {
@@ -369,30 +368,26 @@ const renderMarkdown = (content: string): string => {
 
   const BASE_PATH = '/logic/'
 
-  // 配置 marked
   marked.setOptions({
     gfm: true,
     breaks: false,
   })
 
-  // 自定义渲染器
   const renderer = new marked.Renderer()
 
-  // 自定义标题渲染，添加 ID 和 class
   renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
     const id = slugifyHeading(text)
     return `<h${depth} class="section-title" id="${id}">${text}</h${depth}>`
   }
 
-  renderer.link = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+  renderer.link = ({ href, text }: { href: string; title?: string | null; text: string }) => {
     const isExternal = href.startsWith('http')
     const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
     const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
     return `<a href="${href}"${target}>${text}${icon}</a>`
   }
 
-  // 自定义图片渲染，添加预览功能
-  renderer.image = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+  renderer.image = ({ href, text }: { href: string; title?: string | null; text: string }) => {
     let normalizedSrc: string
     if (href.startsWith('http') || href.startsWith('/logic/')) {
       normalizedSrc = href
@@ -404,12 +399,18 @@ const renderMarkdown = (content: string): string => {
     return `<img src="${normalizedSrc}" alt="${text || ''}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
   }
 
+  renderer.codespan = ({ text }: { text: string }) => {
+    return `<code class="inline-code">${text}</code>`
+  }
+
+  renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
+    const languageClass = lang ? ` language-${lang}` : ''
+    return `<pre class="code-block"><code class="${languageClass}">${text}</code></pre>`
+  }
+
   marked.use({ renderer })
 
-  // 使用 marked 解析
-  const html = marked.parse(content) as string
-
-  return html
+  return marked.parse(content) as string
 }
 
 const currentCategoryArticles = computed(() => {
@@ -466,6 +467,26 @@ const closeImagePreview = () => {
   previewImageSrc.value = ''
 }
 
+const stopWheelPropagationWhenScrollable = (e: WheelEvent) => {
+  const currentTarget = e.currentTarget as HTMLElement | null
+  if (!currentTarget) return
+
+  const { scrollTop, scrollHeight, clientHeight } = currentTarget
+  const delta = e.deltaY
+  const canScroll = scrollHeight > clientHeight + 1
+
+  if (!canScroll) return
+
+  const isScrollingUp = delta < 0
+  const isScrollingDown = delta > 0
+  const atTop = scrollTop <= 0
+  const atBottom = scrollTop + clientHeight >= scrollHeight - 1
+
+  if ((isScrollingUp && !atTop) || (isScrollingDown && !atBottom)) {
+    e.stopPropagation()
+  }
+}
+
 onMounted(() => {
   updateResponsiveState()
   updateScrollProgress()
@@ -513,6 +534,8 @@ watch(selectedArticle, () => {
         v-if="isDesktopSidebarVisible"
         class="desktop-sidebar-left"
         :class="{ collapsed: isSidebarCollapsed }"
+        data-lenis-prevent
+        @wheel="stopWheelPropagationWhenScrollable"
       >
         <template v-if="!isSidebarCollapsed">
           <div class="sidebar-header">
@@ -520,7 +543,11 @@ watch(selectedArticle, () => {
             <h3 class="sidebar-title">教程目录</h3>
           </div>
 
-          <nav class="sidebar-nav">
+          <nav
+            class="sidebar-nav"
+            data-lenis-prevent
+            @wheel="stopWheelPropagationWhenScrollable"
+          >
             <div v-for="(group, index) in sidebarNav.groups" :key="group.id" class="nav-group">
               <button class="group-header" type="button" @click="toggleGroup(index)">
                 <span class="group-title">{{ group.title }}</span>
@@ -554,35 +581,55 @@ watch(selectedArticle, () => {
       <aside
         v-if="isDesktopTocVisible && tocItems.length > 0"
         class="desktop-sidebar-right"
+        data-lenis-prevent
+        @wheel="stopWheelPropagationWhenScrollable"
       >
         <div class="toc-head">
           <h4 class="toc-title">页面导航</h4>
         </div>
 
-        <nav class="toc-nav">
+        <nav
+          class="toc-nav"
+          data-lenis-prevent
+          @wheel="stopWheelPropagationWhenScrollable"
+        >
           <template v-for="item in tocItems" :key="item.id">
             <a
               :href="'#' + item.id"
               class="toc-item"
-              :class="{ active: item.active, 'toc-item--h1': item.level === 1, 'toc-item--h2': item.level === 2, 'toc-item--h3': item.level === 3 }"
+              :class="{
+                active: item.active,
+                'toc-item--h1': item.level === 1,
+                'toc-item--h2': item.level === 2,
+                'toc-item--h3': item.level === 3
+              }"
               @click.prevent="scrollToAnchor(item.id)"
             >
               {{ item.name }}
             </a>
+
             <template v-for="child in item.children" :key="child.id">
               <a
                 :href="'#' + child.id"
                 class="toc-item toc-item--child"
-                :class="{ active: child.active, 'toc-item--h2': child.level === 2, 'toc-item--h3': child.level === 3 }"
+                :class="{
+                  active: child.active,
+                  'toc-item--h2': child.level === 2,
+                  'toc-item--h3': child.level === 3
+                }"
                 @click.prevent="scrollToAnchor(child.id)"
               >
                 {{ child.name }}
               </a>
+
               <template v-for="grandchild in child.children" :key="grandchild.id">
                 <a
                   :href="'#' + grandchild.id"
                   class="toc-item toc-item--child toc-item--grandchild"
-                  :class="{ active: grandchild.active, 'toc-item--h3': grandchild.level === 3 }"
+                  :class="{
+                    active: grandchild.active,
+                    'toc-item--h3': grandchild.level === 3
+                  }"
                   @click.prevent="scrollToAnchor(grandchild.id)"
                 >
                   {{ grandchild.name }}
@@ -661,7 +708,12 @@ watch(selectedArticle, () => {
               <a
                 :href="'#' + item.id"
                 class="toc-item"
-                :class="{ active: item.active, 'toc-item--h1': item.level === 1, 'toc-item--h2': item.level === 2, 'toc-item--h3': item.level === 3 }"
+                :class="{
+                  active: item.active,
+                  'toc-item--h1': item.level === 1,
+                  'toc-item--h2': item.level === 2,
+                  'toc-item--h3': item.level === 3
+                }"
                 @click.prevent="scrollToAnchor(item.id)"
               >
                 {{ item.name }}
@@ -670,7 +722,11 @@ watch(selectedArticle, () => {
                 <a
                   :href="'#' + child.id"
                   class="toc-item toc-item--child"
-                  :class="{ active: child.active, 'toc-item--h2': child.level === 2, 'toc-item--h3': child.level === 3 }"
+                  :class="{
+                    active: child.active,
+                    'toc-item--h2': child.level === 2,
+                    'toc-item--h3': child.level === 3
+                  }"
                   @click.prevent="scrollToAnchor(child.id)"
                 >
                   {{ child.name }}
@@ -679,7 +735,10 @@ watch(selectedArticle, () => {
                   <a
                     :href="'#' + grandchild.id"
                     class="toc-item toc-item--child toc-item--grandchild"
-                    :class="{ active: grandchild.active, 'toc-item--h3': grandchild.level === 3 }"
+                    :class="{
+                      active: grandchild.active,
+                      'toc-item--h3': grandchild.level === 3
+                    }"
                     @click.prevent="scrollToAnchor(grandchild.id)"
                   >
                     {{ grandchild.name }}
@@ -733,8 +792,6 @@ watch(selectedArticle, () => {
       </header>
 
       <article class="article-body">
-    
-
         <div
           v-if="selectedArticle"
           class="markdown-content"
@@ -769,50 +826,50 @@ watch(selectedArticle, () => {
     </main>
 
     <Teleport to="body">
-    <button
-      v-show="showBackToTop"
-      class="back-to-top-btn back-to-top-ring"
-      type="button"
-      aria-label="返回顶部"
-      @click="scrollToTop"
-    >
-      <span class="back-to-top-ring__inner">
-        <svg
-          class="back-to-top-ring__svg"
-          viewBox="0 0 56 56"
-          aria-hidden="true"
-        >
-          <circle
-            class="back-to-top-ring__track"
-            cx="28"
-            cy="28"
-            :r="progressRadius"
-          />
-          <circle
-            class="back-to-top-ring__progress"
-            cx="28"
-            cy="28"
-            :r="progressRadius"
-            :stroke-dasharray="progressCircumference"
-            :stroke-dashoffset="progressDashOffset"
-          />
-        </svg>
+      <button
+        v-show="showBackToTop"
+        class="back-to-top-btn back-to-top-ring"
+        type="button"
+        aria-label="返回顶部"
+        @click="scrollToTop"
+      >
+        <span class="back-to-top-ring__inner">
+          <svg
+            class="back-to-top-ring__svg"
+            viewBox="0 0 56 56"
+            aria-hidden="true"
+          >
+            <circle
+              class="back-to-top-ring__track"
+              cx="28"
+              cy="28"
+              :r="progressRadius"
+            />
+            <circle
+              class="back-to-top-ring__progress"
+              cx="28"
+              cy="28"
+              :r="progressRadius"
+              :stroke-dasharray="progressCircumference"
+              :stroke-dashoffset="progressDashOffset"
+            />
+          </svg>
 
-        <span
-          v-if="!showBackToTopArrow"
-          class="back-to-top-ring__label"
-        >
-          {{ scrollProgress }}%
-        </span>
+          <span
+            v-if="!showBackToTopArrow"
+            class="back-to-top-ring__label"
+          >
+            {{ scrollProgress }}%
+          </span>
 
-        <span
-          v-else
-          class="material-symbols-outlined back-to-top-ring__icon"
-        >
-          arrow_upward
+          <span
+            v-else
+            class="material-symbols-outlined back-to-top-ring__icon"
+          >
+            arrow_upward
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
     </Teleport>
 
     <ImagePreview
@@ -820,7 +877,6 @@ watch(selectedArticle, () => {
       :src="previewImageSrc"
       @close="closeImagePreview"
     />
-
   </div>
 </template>
 
@@ -871,8 +927,6 @@ watch(selectedArticle, () => {
   .knowledge-page.collapsed .main-content {
     margin-left: calc(var(--left-collapsed-width) + 28px);
   }
-
-
 }
 
 .article-header {
@@ -937,26 +991,60 @@ html.dark .article-body {
   color: #e0e4ea;
 }
 
+.desktop-sidebar-left,
+.desktop-sidebar-right {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
 
+.desktop-sidebar-left::-webkit-scrollbar,
+.desktop-sidebar-right::-webkit-scrollbar {
+  width: 4px;
+}
 
+.desktop-sidebar-left::-webkit-scrollbar-track,
+.desktop-sidebar-right::-webkit-scrollbar-track {
+  background: transparent;
+}
 
+.desktop-sidebar-left::-webkit-scrollbar-thumb,
+.desktop-sidebar-right::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+html.dark .desktop-sidebar-left,
+html.dark .desktop-sidebar-right {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+html.dark .desktop-sidebar-left::-webkit-scrollbar-thumb,
+html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
 
 .desktop-sidebar-left {
   position: fixed;
   top: 5rem;
-  min-width: 15.5rem;
-  height: 100svh;
+  left: 0;
+  bottom: 0;
+  width: var(--left-width);
+  max-width: 15.5rem;
   border-right: 1px solid #d9dadb;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
   box-sizing: border-box;
   z-index: 1200;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .desktop-sidebar-left.collapsed {
   width: var(--left-collapsed-width);
+  max-width: var(--left-collapsed-width);
   padding: 12px 8px;
 }
 
@@ -965,7 +1053,29 @@ html.dark .desktop-sidebar-left {
   border-color: rgba(166, 185, 212, 0.14);
 }
 
+.desktop-sidebar-right {
+  position: fixed;
+  right: 0;
+  top: 5rem;
+  bottom: 0;
+  width: var(--right-width);
+  max-width: 14rem;
+  border-left: 1px solid rgba(186, 184, 184, 0.42);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 10;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+html.dark .desktop-sidebar-right {
+  border-color: rgba(166, 185, 212, 0.14);
+}
+
 .sidebar-header {
+  flex-shrink: 0;
   margin-bottom: 22px;
   padding: 0 8px;
 }
@@ -994,6 +1104,44 @@ html.dark .sidebar-series {
 
 html.dark .sidebar-title {
   color: #c3d0e3;
+}
+
+.sidebar-nav,
+.toc-nav {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar,
+.toc-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track,
+.toc-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb,
+.toc-nav::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+html.dark .sidebar-nav,
+html.dark .toc-nav {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+html.dark .sidebar-nav::-webkit-scrollbar-thumb,
+html.dark .toc-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-nav {
@@ -1112,24 +1260,8 @@ html.dark .nav-item.active {
   border-left-color: #a6b9d4;
 }
 
-.desktop-sidebar-right {
-  position: fixed;
-  right: 0;
-  top: 5rem;
-  min-width: 14rem;
-  height: 100vh;
-  overflow-y: auto;
-  padding: 16px 14px;
-  box-sizing: border-box;
-  z-index: 10;
-  border-left: 1px solid rgba(186, 184, 184, 0.42);
-}
-
-html.dark .desktop-sidebar-right {
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
 .toc-head {
+  flex-shrink: 0;
   margin-bottom: 14px;
   padding-left: 2px;
 }
@@ -1192,13 +1324,11 @@ html.dark .toc-title {
   border-radius: 999px;
 }
 
-/* 一级标题 */
 .toc-item--h1 {
   font-weight: 700;
   font-size: 14px;
 }
 
-/* 二级标题 - 缩进 */
 .toc-item--h2,
 .toc-item--child {
   padding-left: 24px;
@@ -1206,7 +1336,6 @@ html.dark .toc-title {
   font-size: 13px;
 }
 
-/* 三级标题 - 进一步缩进 */
 .toc-item--h3,
 .toc-item--grandchild {
   padding-left: 36px;
@@ -1436,16 +1565,46 @@ html.dark .nav-link-text {
   width: min(86vw, 23rem);
   height: 100dvh;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   padding: calc(88px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
   background: rgba(253, 252, 251, 0.98);
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
   transition: transform 0.28s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(95, 110, 138, 0.45) transparent;
+}
+
+.mobile-panel-drawer::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mobile-panel-drawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-panel-drawer::-webkit-scrollbar-thumb {
+  background: rgba(95, 110, 138, 0.42);
+  border-radius: 999px;
+}
+
+.mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
+  background: rgba(95, 110, 138, 0.6);
 }
 
 html.dark .mobile-panel-drawer {
   background: rgba(27, 39, 57, 0.98);
+  scrollbar-color: rgba(166, 185, 212, 0.42) transparent;
+}
+
+html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb {
+  background: rgba(166, 185, 212, 0.38);
+}
+
+html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
+  background: rgba(166, 185, 212, 0.56);
 }
 
 .mobile-panel-drawer--left {
@@ -1670,6 +1829,14 @@ html.dark .back-to-top-ring__icon {
     border-right-color: rgba(166, 185, 212, 0.14);
   }
 
+  .mobile-panel-drawer .sidebar-nav,
+  .mobile-panel-drawer .toc-nav {
+    flex: none;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
   .article-header,
   .article-body,
   .article-footer {
@@ -1693,8 +1860,6 @@ html.dark .back-to-top-ring__icon {
     font-size: 16px;
     line-height: 1.8;
   }
-
-
 
   .article-footer {
     margin-top: 56px;
@@ -1728,12 +1893,35 @@ html.dark .back-to-top-ring__icon {
     bottom: 5rem;
     width: 58px;
     height: 58px;
-  }  
+  }
 }
-
 
 .empty-content {
   padding: 32px;
   text-align: center;
+}
+
+.markdown-content :deep(.code-block) {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.markdown-content :deep(.code-block code) {
+  color: #d4d4d4;
+}
+
+.markdown-content :deep(.inline-code) {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  color: #e83e8c;
 }
 </style>
