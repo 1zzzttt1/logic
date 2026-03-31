@@ -163,25 +163,36 @@ type TocItem = {
 }
 
 function generateToc(content: string): TocItem[] {
+  if (!content) return []
+
+  const tokens = marked.lexer(content)
   const toc: TocItem[] = []
-  const headingRegex = /^(#{1,3})\s+(.+)$/gm
-  let match: RegExpExecArray | null
 
-  while ((match = headingRegex.exec(content)) !== null) {
-    const level = match[1]!.length
-    const text = match[2]!.trim()
-    const id = slugifyHeading(text)
-    if (!id) continue
+  const walkTokens = (items: any[]) => {
+    for (const token of items) {
+      if (token.type === 'heading' && token.depth >= 1 && token.depth <= 3) {
+        const text = String(token.text || '').trim()
+        const id = slugifyHeading(text)
 
-    toc.push({
-      name: text,
-      id,
-      level,
-      active: false,
-      children: [],
-    })
+        if (!text || !id) continue
+
+        toc.push({
+          name: text,
+          id,
+          level: token.depth,
+          active: false,
+          children: [],
+        })
+      }
+
+      // 某些 token 可能带有嵌套 token，递归处理
+      if (Array.isArray(token.tokens)) {
+        walkTokens(token.tokens)
+      }
+    }
   }
 
+  walkTokens(tokens)
   return toc
 }
 

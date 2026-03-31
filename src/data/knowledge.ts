@@ -17,7 +17,10 @@ export interface KnowledgeCategory {
 export const knowledgeCategories = [
   { id: 'ai-basics', name: 'AI基础' },
   { id: 'claude-code', name: 'Claude Code使用教程' },
+  { id: 'build-with-claude-code', name: '使用claude code开发'},
   { id: 'ai-development', name: 'AI应用开发' },
+  { id: 'agent-skills', name: 'agent Skills' },
+
 ]
 
 // 动态加载各分类下的 MD 文件
@@ -38,6 +41,18 @@ const aiDevelopmentModules = import.meta.glob('/src/data/knowledge/ai-developmen
   import: 'default',
   eager: true
 })
+
+const buildWithClaudeCodeModules = import.meta.glob('/src/data/knowledge/build-with-claude-code/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true
+  })
+
+const agentSkillsModules = import.meta.glob('/src/data/knowledge/agent-skills/*.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true
+  })
 
 // 解析 frontmatter
 function parseFrontmatter(content: string): { metadata: Record<string, unknown>; content: string } {
@@ -98,6 +113,8 @@ function convertToArticles(modules: Record<string, unknown>, category: string): 
 export const aiBasicsArticles = convertToArticles(aiBasicsModules, 'ai-basics')
 export const claudeCodeArticles = convertToArticles(claudeCodeModules, 'claude-code')
 export const aiDevelopmentArticles = convertToArticles(aiDevelopmentModules, 'ai-development')
+export const buildwithClaudeCodeArticles = convertToArticles(buildWithClaudeCodeModules, 'build-with-claude-code')
+export const agentSkillsArticles = convertToArticles(agentSkillsModules, 'build-with-claude-code')
 
 // 导出完整的知识库数据
 export const knowledgeData: KnowledgeCategory[] = [
@@ -112,10 +129,21 @@ export const knowledgeData: KnowledgeCategory[] = [
     articles: claudeCodeArticles
   },
   {
+    id: 'agen-skills',
+    name: 'Agent Skills',
+    articles: agentSkillsArticles
+  },
+  {
+    id: 'build-with-claude-code',
+    name: '使用Claude Code开发',
+    articles: buildwithClaudeCodeArticles
+  },
+  {
     id: 'ai-development',
     name: 'AI应用开发',
     articles: aiDevelopmentArticles
   },
+
 ]
 
 // 根据分类获取文章
