@@ -379,49 +379,90 @@ const renderMarkdown = (content: string): string => {
 
   const BASE_PATH = '/logic/'
 
-  marked.setOptions({
-    gfm: true,
-    breaks: false,
-  })
-
   const renderer = new marked.Renderer()
 
-  renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
+  renderer.heading = (token: any) => {
+    const text = String(token?.text ?? '')
+    const depth = Number(token?.depth ?? 1)
     const id = slugifyHeading(text)
     return `<h${depth} class="section-title" id="${id}">${text}</h${depth}>`
   }
 
-  renderer.link = ({ href, text }: { href: string; title?: string | null; text: string }) => {
-    const isExternal = href.startsWith('http')
+  renderer.link = (token: any) => {
+    const href = String(token?.href ?? '')
+    const text = String(token?.text ?? href)
+    const isExternal = /^https?:\/\//.test(href)
     const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
     const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
     return `<a href="${href}"${target}>${text}${icon}</a>`
   }
 
-  renderer.image = ({ href, text }: { href: string; title?: string | null; text: string }) => {
-    let normalizedSrc: string
-    if (href.startsWith('http') || href.startsWith('/logic/')) {
+  renderer.image = (token: any) => {
+    const href = String(token?.href ?? '')
+    const text = String(token?.text ?? '')
+    let normalizedSrc = ''
+
+    if (/^https?:\/\//.test(href) || href.startsWith('/logic/')) {
       normalizedSrc = href
     } else if (href.startsWith('/')) {
       normalizedSrc = BASE_PATH + href.slice(1)
     } else {
       normalizedSrc = BASE_PATH + href.replace(/^\.\//, '')
     }
-    return `<img src="${normalizedSrc}" alt="${text || ''}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
+
+    return `<img src="${normalizedSrc}" alt="${text}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
   }
 
-  renderer.codespan = ({ text }: { text: string }) => {
+  renderer.codespan = (token: any) => {
+    const text = String(token?.text ?? '')
     return `<code class="inline-code">${text}</code>`
   }
 
-  renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
+  renderer.code = (token: any) => {
+    const text = String(token?.text ?? '')
+    const lang = String(token?.lang ?? '')
     const languageClass = lang ? ` language-${lang}` : ''
     return `<pre class="code-block"><code class="${languageClass}">${text}</code></pre>`
   }
 
-  marked.use({ renderer })
+  renderer.table = function (token: any) {
+    const parseInline = (cell: any) => {
+      if (cell?.tokens && Array.isArray(cell.tokens)) {
+        return this.parser.parseInline(cell.tokens)
+      }
+      return String(cell?.text ?? '')
+    }
 
-  return marked.parse(content) as string
+    const headerHtml = Array.isArray(token?.header)
+      ? token.header.map((cell: any) => `<th>${parseInline(cell)}</th>`).join('')
+      : ''
+
+    const bodyHtml = Array.isArray(token?.rows)
+      ? token.rows
+          .map((row: any[]) => {
+            const tds = Array.isArray(row)
+              ? row.map((cell: any) => `<td>${parseInline(cell)}</td>`).join('')
+              : ''
+            return `<tr>${tds}</tr>`
+          })
+          .join('')
+      : ''
+
+    return `
+      <div class="table-wrap">
+        <table class="markdown-table">
+          <thead><tr>${headerHtml}</tr></thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      </div>
+    `
+  }
+
+  return marked.parse(content, {
+    gfm: true,
+    breaks: false,
+    renderer,
+  }) as string
 }
 
 const currentCategoryArticles = computed(() => {
@@ -1934,5 +1975,88 @@ html.dark .back-to-top-ring__icon {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.9em;
   color: #e83e8c;
+}
+
+.markdown-content :deep(.table-wrap) {
+  width: 100%;
+  overflow-x: auto;
+  margin: 24px 0;
+  border-radius: 14px;
+  border: 1px solid rgba(95, 110, 138, 0.14);
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-content :deep(.markdown-table) {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #45484e;
+}
+
+.markdown-content :deep(.markdown-table thead tr) {
+  background: rgba(95, 110, 138, 0.08);
+}
+
+.markdown-content :deep(.markdown-table th),
+.markdown-content :deep(.markdown-table td) {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(95, 110, 138, 0.12);
+}
+
+.markdown-content :deep(.markdown-table th) {
+  font-weight: 700;
+  color: #465774;
+  white-space: nowrap;
+}
+
+.markdown-content :deep(.markdown-table tbody tr:last-child td) {
+  border-bottom: none;
+}
+
+.markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
+  background: rgba(95, 110, 138, 0.03);
+}
+
+html.dark .markdown-content :deep(.table-wrap) {
+  background: rgba(27, 39, 57, 0.72);
+  border-color: rgba(166, 185, 212, 0.14);
+}
+
+html.dark .markdown-content :deep(.markdown-table) {
+  color: #c4cde0;
+}
+
+html.dark .markdown-content :deep(.markdown-table thead tr) {
+  background: rgba(166, 185, 212, 0.1);
+}
+
+html.dark .markdown-content :deep(.markdown-table th) {
+  color: #d7e2f1;
+}
+
+html.dark .markdown-content :deep(.markdown-table th),
+html.dark .markdown-content :deep(.markdown-table td) {
+  border-bottom-color: rgba(166, 185, 212, 0.12);
+}
+
+html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
+  background: rgba(166, 185, 212, 0.04);
+}
+
+@media (max-width: 947px) {
+  .markdown-content :deep(.markdown-table) {
+    min-width: 520px;
+    font-size: 14px;
+  }
+
+  .markdown-content :deep(.markdown-table th),
+  .markdown-content :deep(.markdown-table td) {
+    padding: 12px 14px;
+  }
 }
 </style>
