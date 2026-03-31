@@ -5,7 +5,9 @@
       "Bash(head:*)",
       "Bash(tail:*)",
       "WebSearch",
-      "WebFetch(domain:webkit.org)"
+      "WebFetch(domain:webkit.org)",
+      "Bash(cd:*)",
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
     ]
   }
 }

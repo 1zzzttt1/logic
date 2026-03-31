@@ -370,17 +370,17 @@ const renderMarkdown = (content: string): string => {
 
   let html = content
 
-  html = html.replace(/^### (.*$)/gim, (_match, p1) => {
+  html = html.replace(/^###\s+(.*$)/gim, (_match, p1) => {
     const id = slugifyHeading(p1)
     return `<h3 class="section-title" id="${id}">${p1}</h3>`
   })
 
-  html = html.replace(/^## (.*$)/gim, (_match, p1) => {
+  html = html.replace(/^##\s+(.*$)/gim, (_match, p1) => {
     const id = slugifyHeading(p1)
     return `<h2 class="section-title" id="${id}">${p1}</h2>`
   })
 
-  html = html.replace(/^# (.*$)/gim, (_match, p1) => {
+  html = html.replace(/^#\s+(.*$)/gim, (_match, p1) => {
     const id = slugifyHeading(p1)
     return `<h1 class="section-title" id="${id}">${p1}</h1>`
   })
@@ -397,11 +397,25 @@ const renderMarkdown = (content: string): string => {
     return `<img src="${normalizedSrc}" alt="${alt}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
   })
 
+  // 链接处理
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+    const isExternal = url.startsWith('http')
+    const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
+    const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
+    return `<a href="${url}"${target}>${text}${icon}</a>`
+  })
+
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
 
-  html = html.replace(/^- (.*$)/gim, '<li>$1</li>')
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+  // 先提取标题和引用块，避免被后续列表处理干扰
+  html = html.replace(/<h([1-3]) class="section-title" id="([^"]*)">([\s\S]*?)<\/h\1>/g, '___HEADING___$1|$2|$3___END___')
+  html = html.replace(/<blockquote([\s\S]*?)>([\s\S]*?)<\/blockquote>/g, '___BLOCKQUOTE___$1$2___END_BLOCKQUOTE___')
+
+  // 列表处理 - 使用更严格的匹配，排除空行后以 - 或 * 开头的行
+  html = html.replace(/(?<=\n)- (.*$)/gim, '<li>$1</li>')
+  html = html.replace(/(?<=\n)\* (?![#])(.*$)/gim, '<li>$1</li>')
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
 
   html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
   html = html.replace(/^> (.*$)/gim, '<blockquote class="expert-tip"><p>$1</p></blockquote>')
@@ -410,6 +424,10 @@ const renderMarkdown = (content: string): string => {
   html = html.replace(/\n/g, '<br>')
   html = '<p class="section-text">' + html + '</p>'
   html = html.replace(/<p class="section-text"><\/p>/g, '')
+
+  // 还原标题元素
+  html = html.replace(/___HEADING___(\d+)\|([^|]*)\|([\s\S]*?)___END___/g, '<h$1 class="section-title" id="$2">$3</h$1>')
+  html = html.replace(/___BLOCKQUOTE___(.*?)___END_BLOCKQUOTE___/g, '<blockquote$1>$2</blockquote>')
 
   return html
 }
@@ -735,12 +753,7 @@ watch(selectedArticle, () => {
       </header>
 
       <article class="article-body">
-        <div class="article-hero">
-          <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuACt5DzmuKmB7orWdqxYZ19-aOnV1mAKRqrfTCkWy9lU5FFhisLITW9MZwbULVt5D8_n_3Nv7bDq8HdlTO9cGWTYxF2nZ_P5ra7JVUgnXjvwkq6y4AYzZ-ru8vL0zncKqeYm435wjXkc724Jl6194zopiDi8tN13DRqB_G5tRoTGKLtys5yZlU8joG6OmcvGuNUcUKIy_MdNTqkVumZFM9Cj-wMxg6SObx19QjH6sOVT3W5Z0u0fV_L6JaCifBHd0b-5oi70ZyOsSo"
-            alt="Abstract digital visualization"
-          />
-        </div>
+    
 
         <div
           v-if="selectedArticle"
@@ -944,23 +957,9 @@ html.dark .article-body {
   color: #e0e4ea;
 }
 
-.article-hero {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 8.6;
-  overflow: hidden;
-  border-radius: 18px;
-  margin-bottom: 52px;
-  box-shadow:
-    0 10px 30px rgba(31, 31, 28, 0.06),
-    0 2px 8px rgba(31, 31, 28, 0.04);
-}
 
-.article-hero img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+
+
 
 .desktop-sidebar-left {
   position: fixed;
@@ -1268,31 +1267,34 @@ html.dark .toc-item.active::before {
 
 .markdown-content :deep(h1) {
   font-family: 'Noto Serif SC', serif;
-  font-size: 32px;
-  line-height: 1.22;
+  font-size: 38px;
+  line-height: 1.2;
   font-weight: 700;
   color: #475671;
   margin: 0 0 24px;
+  padding-left: 0;
   scroll-margin-top: 108px;
 }
 
 .markdown-content :deep(h2) {
   font-family: 'Noto Serif SC', serif;
   font-size: 28px;
-  line-height: 1.34;
+  line-height: 1.3;
   font-weight: 700;
   color: #475671;
-  margin: 52px 0 18px;
+  margin: 48px 0 18px;
+  padding-left: 0;
   scroll-margin-top: 108px;
 }
 
 .markdown-content :deep(h3) {
   font-family: 'Noto Serif SC', serif;
-  font-size: 22px;
-  line-height: 1.42;
+  font-size: 20px;
+  line-height: 1.4;
   font-weight: 700;
   color: #475671;
-  margin: 36px 0 14px;
+  margin: 32px 0 14px;
+  padding-left: 0;
   scroll-margin-top: 108px;
 }
 
@@ -1305,12 +1307,10 @@ html.dark .toc-item.active::before {
 
 .markdown-content :deep(ul),
 .markdown-content :deep(ol) {
-  margin: 0 0 26px;
   padding-left: 24px;
 }
 
 .markdown-content :deep(li) {
-  margin-bottom: 8px;
   font-size: 16px;
   line-height: 1.9;
   color: #45484e;
@@ -1714,10 +1714,7 @@ html.dark .back-to-top-ring__icon {
     line-height: 1.8;
   }
 
-  .article-hero {
-    margin-bottom: 36px;
-    border-radius: 14px;
-  }
+
 
   .article-footer {
     margin-top: 56px;

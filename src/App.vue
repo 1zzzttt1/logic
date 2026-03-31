@@ -44,7 +44,10 @@ onMounted(async () => {
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
-
+* {
+  margin: 0;
+  padding: 0;
+}
 
 
 ::view-transition-old(root),
