@@ -49,6 +49,15 @@ onMounted(async () => {
   padding: 0;
 }
 
+.article-body .markdown-content > ul {
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+}
+
+.article-body .markdown-content > ul > li > ul {
+  margin-top: -1rem;
+}
+
 
 ::view-transition-old(root),
 ::view-transition-new(root) {

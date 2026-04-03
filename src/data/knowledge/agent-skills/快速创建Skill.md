@@ -1,5 +1,5 @@
 ---
-title: 快速创建 Skill
+title: 3. 快速创建 Skill
 description: 阅读时间：10分钟
 order: 3
 ---
