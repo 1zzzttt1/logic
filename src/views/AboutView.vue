@@ -18,19 +18,7 @@ const openGitHub = () => {
   <div class="about-page">
     <div class="about-container">
       <!-- Avatar -->
-      <div class="avatar-section">
-        <div class="avatar-wrapper">
-          <img
-            v-if="author.avatar"
-            :src="author.avatar"
-            :alt="author.name"
-            class="avatar"
-          />
-          <div v-else class="avatar-placeholder">
-            {{ author.name.charAt(0) }}
-          </div>
-        </div>
-      </div>
+    
 
       <!-- Intro -->
       <section class="intro-section">

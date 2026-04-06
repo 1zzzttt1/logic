@@ -51,10 +51,7 @@ const goToDetail = (id: string) => {
         <h2 class="article-title">{{ article.title }}</h2>
         <p class="article-summary">{{ article.summary }}</p>
 
-        <div class="article-source">
-          <span class="material-symbols-outlined">link</span>
-          <span>来源：{{ article.sourceTitle }}</span>
-        </div>
+   
       </article>
     </div>
 

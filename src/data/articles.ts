@@ -59,7 +59,6 @@ export const mdArticles = Object.entries(mdModules).map(([path, content]) => {
     summary: (metadata.summary as string) || '',
     content: markdownContent || '',
     sourceUrl: '',
-    sourceTitle: '本地文件',
     tags: (metadata.tags as string[]) || [],
     publishedAt: (metadata.publishedAt as string) || new Date().toISOString().split('T')[0] || '',
     createdAt: (metadata.publishedAt as string) || new Date().toISOString().split('T')[0] || '',

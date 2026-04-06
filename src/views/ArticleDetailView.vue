@@ -250,7 +250,7 @@ html.dark .article-content :deep(h3) {
 }
 
 .article-content :deep(p) {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .article-content :deep(ul),
