@@ -41,7 +41,7 @@ onMounted(async () => {
 </template>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Manrope:wght@300;400;600;800&family=Work+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Source+Han+Sans+SC:wght@300;400;500;700;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 * {
@@ -188,14 +188,18 @@ body {
 }
 
 body {
-  font-family: 'Manrope', 'Noto Sans SC', sans-serif;
+  font-family: 'Manrope', 'Source Han Sans SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #1f1f1c;
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
   transition: background 0.45s ease, color 0.35s ease;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  line-height: 1.7;
+  font-weight: 400;
+  font-size: 17px;
 }
 
 .knowledge-bg body {
