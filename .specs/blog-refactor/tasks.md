@@ -82,7 +82,7 @@
     - 点击图片 → ImagePreview 弹窗正常
   - 依赖：无
 
-- [ ] **Task 1.6: 修复 HomeView 中 navigateWithTransition 未 await**
+- [x] **Task 1.6: 修复 HomeView 中 navigateWithTransition 未 await**
 
   - 文件：
     - `src/views/HomeView.vue`
