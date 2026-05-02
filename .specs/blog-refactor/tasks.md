@@ -38,7 +38,7 @@
     - 首页和知识库页之间切换 → SVG 过渡动画有可见渐变色（非透明/纯黑）
   - 依赖：无
 
-- [ ] **Task 1.3: 修复 agent-skills 分类 ID 拼写和 category 参数**
+- [x] **Task 1.3: 修复 agent-skills 分类 ID 拼写和 category 参数**
 
   - 文件：
     - `src/data/knowledge.ts`

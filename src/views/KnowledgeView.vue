@@ -133,6 +133,10 @@ const selectArticle = (categoryId: string, articleId: string) => {
   const articles = getArticlesByCategory(categoryId)
   selectedArticle.value = articles.find((a) => a.id === articleId) || null
 
+  if (selectedArticle.value) {
+    window.location.hash = `#/knowledge#${categoryId}/${articleId}`
+  }
+
   nextTick(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
     updateScrollProgress()

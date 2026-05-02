@@ -114,7 +114,7 @@ export const aiBasicsArticles = convertToArticles(aiBasicsModules, 'ai-basics')
 export const claudeCodeArticles = convertToArticles(claudeCodeModules, 'claude-code')
 export const aiDevelopmentArticles = convertToArticles(aiDevelopmentModules, 'ai-development')
 export const buildwithClaudeCodeArticles = convertToArticles(buildWithClaudeCodeModules, 'build-with-claude-code')
-export const agentSkillsArticles = convertToArticles(agentSkillsModules, 'build-with-claude-code')
+export const agentSkillsArticles = convertToArticles(agentSkillsModules, 'agent-skills')
 
 // 导出完整的知识库数据
 export const knowledgeData: KnowledgeCategory[] = [
@@ -129,7 +129,7 @@ export const knowledgeData: KnowledgeCategory[] = [
     articles: claudeCodeArticles
   },
   {
-    id: 'agen-skills',
+    id: 'agent-skills',
     name: 'Agent Skills',
     articles: agentSkillsArticles
   },
