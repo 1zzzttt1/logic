@@ -102,22 +102,22 @@ watch(pathRef, (el) => {
 }
 
 .page-transition-overlay__stop--1 {
-  stop-color: var(--page-transition-stop-1);
+  stop-color: var(--page-transition-base-1);
   stop-opacity: 1;
 }
 
 .page-transition-overlay__stop--2 {
-  stop-color: var(--page-transition-stop-2);
+  stop-color: var(--page-transition-base-2);
   stop-opacity: 1;
 }
 
 .page-transition-overlay__stop--3 {
-  stop-color: var(--page-transition-stop-3);
+  stop-color: var(--page-transition-base-3);
   stop-opacity: 1;
 }
 
 .page-transition-overlay__stop--4 {
-  stop-color: var(--page-transition-stop-4);
+  stop-color: var(--page-transition-base-4);
   stop-opacity: 1;
 }
 </style>

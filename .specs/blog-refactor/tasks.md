@@ -25,7 +25,7 @@
     - 知识库页点击 TOC 锚点 → 平滑滚动到目标位置
   - 依赖：无
 
-- [ ] **Task 1.2: 修复页面过渡动画 CSS 变量名**
+- [x] **Task 1.2: 修复页面过渡动画 CSS 变量名**
 
   - 文件：
     - `src/components/PageTransitionOverlay.vue`
