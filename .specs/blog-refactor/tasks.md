@@ -155,7 +155,7 @@
   - 人工验证：无
   - 依赖：无
 
-- [ ] **Task 2.4: 创建共享 Markdown 渲染工具**
+- [x] **Task 2.4: 创建共享 Markdown 渲染工具**
 
   - 文件：
     - `src/utils/markdown.ts`（新建）
