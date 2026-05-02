@@ -174,7 +174,7 @@
     - 代码对比确认提取的函数与原实现逻辑一致
   - 依赖：Task 2.1（需要 TocItem 类型）
 
-- [ ] **Task 2.5: 创建统一 Frontmatter 解析工具**
+- [x] **Task 2.5: 创建统一 Frontmatter 解析工具**
 
   - 文件：
     - `src/utils/frontmatter.ts`（新建）
@@ -199,7 +199,7 @@
 
 ## Phase 3: 消除重复代码（7 个任务）
 
-- [ ] **Task 3.1: 重构 knowledge.ts 使用共享 frontmatter**
+- [x] **Task 3.1: 重构 knowledge.ts 使用共享 frontmatter**
 
   - 文件：
     - `src/data/knowledge.ts`

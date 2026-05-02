@@ -1,3 +1,5 @@
+import { parseFrontmatter } from '@/utils/frontmatter'
+
 export interface KnowledgeArticle {
   id: string
   title: string
@@ -53,42 +55,6 @@ const agentSkillsModules = import.meta.glob('/src/data/knowledge/agent-skills/*.
     import: 'default',
     eager: true
   })
-
-// 解析 frontmatter
-function parseFrontmatter(content: string): { metadata: Record<string, unknown>; content: string } {
-  // 先统一换行符
-  const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-
-  const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (!match) {
-    return { metadata: {}, content }
-  }
-
-  const yamlStr = match[1] || ''
-  const markdown = match[2] || ''
-
-  const metadata: Record<string, unknown> = {}
-  if (yamlStr) {
-    yamlStr.split('\n').forEach(line => {
-      const [key, ...valueParts] = line.split(':')
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim()
-        const keyTrimmed = key.trim()
-        // 解析数组
-        if (value.startsWith('[') && value.endsWith(']')) {
-          metadata[keyTrimmed] = value.slice(1, -1).split(',').map(s => s.trim())
-        } else if (keyTrimmed === 'order') {
-          // order 字段特殊处理，确保转为数字
-          metadata[keyTrimmed] = parseInt(value, 10)
-        } else {
-          metadata[keyTrimmed] = value.replace(/^["']|["']$/g, '')
-        }
-      }
-    })
-  }
-
-  return { metadata, content: markdown }
-}
 
 // 转换 MD 文件为知识文章数组
 function convertToArticles(modules: Record<string, unknown>, category: string): KnowledgeArticle[] {
