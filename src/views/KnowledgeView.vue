@@ -410,6 +410,8 @@ const renderMarkdown = (content: string): string => {
       normalizedSrc = href
     } else if (href.startsWith('/')) {
       normalizedSrc = BASE_PATH + href.slice(1)
+    } else if (href.startsWith('./images/')) {
+      normalizedSrc = BASE_PATH + href.slice(2)
     } else {
       normalizedSrc = BASE_PATH + href.replace(/^\.\//, '')
     }
