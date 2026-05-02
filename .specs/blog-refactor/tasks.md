@@ -53,7 +53,7 @@
     - 选中文章后 URL hash 正确（如 `#agent-skills/规范说明`）
   - 依赖：无
 
-- [ ] **Task 1.4: 修复文章 tags YAML 列表格式解析**
+- [x] **Task 1.4: 修复文章 tags YAML 列表格式解析**
 
   - 文件：
     - `src/data/articles.ts`

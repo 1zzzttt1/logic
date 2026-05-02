@@ -43,6 +43,28 @@ function parseFrontmatter(content: string): { metadata: Record<string, unknown>;
         }
       }
     })
+
+    // 处理 YAML 列表格式（多行破折号列表）
+    // 例如: tags:\n  - value1\n  - value2
+    const listKeyRe = /^(\w+):\s*$/gm
+    let lm: RegExpExecArray | null
+    while ((lm = listKeyRe.exec(yamlStr)) !== null) {
+      const key = lm[1]!
+      const afterKey = yamlStr.substring(lm.index + lm[0].length)
+      const items: string[] = []
+      const lines = afterKey.split('\n')
+      for (const listLine of lines) {
+        const m = listLine.match(/^\s+-\s+(.+)/)
+        if (m) {
+          items.push(m[1]!.trim().replace(/^["']|["']$/g, ''))
+        } else if (listLine.trim() !== '' && !listLine.startsWith(' ')) {
+          break
+        }
+      }
+      if (items.length > 0) {
+        metadata[key] = items
+      }
+    }
   }
 
   return { metadata, content: markdown }
