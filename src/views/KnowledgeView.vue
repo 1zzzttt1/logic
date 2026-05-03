@@ -6,6 +6,7 @@ import { useScrollProgress } from '@/composables/useScrollProgress'
 import ImagePreview from '@/components/ImagePreview.vue'
 import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
 import KnowledgeToc from '@/components/KnowledgeToc.vue'
+import KnowledgeMobilePanels from '@/components/KnowledgeMobilePanels.vue'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -47,48 +48,6 @@ const updateResponsiveState = () => {
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
-}
-
-const lockBodyScroll = () => {
-  document.body.style.overflow = 'hidden'
-  document.documentElement.style.overflow = 'hidden'
-}
-
-const unlockBodyScroll = () => {
-  document.body.style.overflow = ''
-  document.documentElement.style.overflow = ''
-}
-
-const openMobileSidebar = () => {
-  showMobileToc.value = false
-  showMobileSidebar.value = true
-  lockBodyScroll()
-}
-
-const closeMobileSidebar = () => {
-  showMobileSidebar.value = false
-  if (!showMobileToc.value) {
-    unlockBodyScroll()
-  }
-}
-
-const openMobileToc = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = true
-  lockBodyScroll()
-}
-
-const closeMobileToc = () => {
-  showMobileToc.value = false
-  if (!showMobileSidebar.value) {
-    unlockBodyScroll()
-  }
-}
-
-const closeAllMobilePanels = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = false
-  unlockBodyScroll()
 }
 
 const sidebarNav = computed(() => {
@@ -149,7 +108,6 @@ const handleNavClick = (path: string) => {
   if (match && match[1] && match[2]) {
     selectArticle(match[1], match[2])
   }
-  closeAllMobilePanels()
 }
 
 function slugifyHeading(text: string) {
@@ -246,7 +204,8 @@ const scrollToAnchor = (id: string) => {
     })
   }
 
-  closeAllMobilePanels()
+  showMobileSidebar.value = false
+  showMobileToc.value = false
 }
 
 let observer: IntersectionObserver | null = null
@@ -440,7 +399,8 @@ const handleResize = () => {
   updateScrollProgress()
 
   if (window.innerWidth >= DESKTOP_BREAKPOINT) {
-    closeAllMobilePanels()
+    showMobileSidebar.value = false
+    showMobileToc.value = false
   }
 }
 
@@ -501,7 +461,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   observer?.disconnect()
-  unlockBodyScroll()
 })
 
 watch(selectedArticle, () => {
@@ -538,115 +497,32 @@ watch(selectedArticle, () => {
       />
     </Teleport>
 
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileSidebar }"
-        @click="closeMobileSidebar"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--left" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">教程目录</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileSidebar">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <nav class="sidebar-nav">
-            <div
-              v-for="(group, index) in sidebarNav.groups"
-              :key="group.id"
-              class="nav-group"
-            >
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
-
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileToc }"
-        @click="closeMobileToc"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--right" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">页面导航</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileToc">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <nav class="toc-nav mobile-toc-nav">
-            <template v-for="item in tocItems" :key="item.id">
-              <a
-                :href="'#' + item.id"
-                class="toc-item"
-                :class="{
-                  active: item.active,
-                  'toc-item--h1': item.level === 1,
-                  'toc-item--h2': item.level === 2,
-                  'toc-item--h3': item.level === 3
-                }"
-                @click.prevent="scrollToAnchor(item.id)"
-              >
-                {{ item.name }}
-              </a>
-              <template v-for="child in item.children" :key="child.id">
-                <a
-                  :href="'#' + child.id"
-                  class="toc-item toc-item--child"
-                  :class="{
-                    active: child.active,
-                    'toc-item--h2': child.level === 2,
-                    'toc-item--h3': child.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(child.id)"
-                >
-                  {{ child.name }}
-                </a>
-                <template v-for="grandchild in child.children" :key="grandchild.id">
-                  <a
-                    :href="'#' + grandchild.id"
-                    class="toc-item toc-item--child toc-item--grandchild"
-                    :class="{
-                      active: grandchild.active,
-                      'toc-item--h3': grandchild.level === 3
-                    }"
-                    @click.prevent="scrollToAnchor(grandchild.id)"
-                  >
-                    {{ grandchild.name }}
-                  </a>
-                </template>
-              </template>
-            </template>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Task 4.6a+4.6b: 使用 KnowledgeMobilePanels 管理移动端侧边栏和 TOC 面板 -->
+    <KnowledgeMobilePanels
+      :show-sidebar="showMobileSidebar"
+      :show-toc="showMobileToc"
+      @close-sidebar="showMobileSidebar = false"
+      @close-toc="showMobileToc = false"
+    >
+      <template #sidebar>
+        <KnowledgeSidebar
+          mode="mobile"
+          :categories="knowledgeData"
+          :expanded-category-ids="expandedCategoryIds"
+          :selected-category="selectedCategory"
+          :selected-article="selectedArticle"
+          @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false; }"
+          @toggle-category="toggleGroup"
+        />
+      </template>
+      <template #toc>
+        <KnowledgeToc
+          mode="mobile"
+          :items="tocItems"
+          @navigate="scrollToAnchor"
+        />
+      </template>
+    </KnowledgeMobilePanels>
 
     <main class="main-content">
       <Teleport to=".page-content">
@@ -654,7 +530,7 @@ watch(selectedArticle, () => {
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--left"
             type="button"
-            @click="openMobileSidebar"
+            @click="showMobileToc = false; showMobileSidebar = true"
           >
             <span class="material-symbols-outlined">menu</span>
             <span>教程目录</span>
@@ -663,7 +539,7 @@ watch(selectedArticle, () => {
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--right"
             type="button"
-            @click="openMobileToc"
+            @click="showMobileSidebar = false; showMobileToc = true"
             :disabled="tocItems.length === 0"
           >
             <span>页面导航</span>

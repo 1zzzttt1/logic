@@ -435,7 +435,7 @@
 
 ### 4.4 集成移动端面板（3 个任务）
 
-- [ ] **Task 4.6a: 在 KnowledgeView 中使用 KnowledgeMobilePanels（侧边栏抽屉）**
+- [x] **Task 4.6a: 在 KnowledgeView 中使用 KnowledgeMobilePanels（侧边栏抽屉）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
@@ -453,7 +453,7 @@
     - 面板内点击文章 → 面板关闭，主内容切换
   - 依赖：Task 4.3, Task 4.4b
 
-- [ ] **Task 4.6b: 在 KnowledgeView 中使用 KnowledgeMobilePanels（TOC 抽屉）**
+- [x] **Task 4.6b: 在 KnowledgeView 中使用 KnowledgeMobilePanels（TOC 抽屉）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
@@ -470,7 +470,7 @@
     - 两边面板互斥（打开侧边栏时点 TOC，侧边栏关闭 TOC 打开）
   - 依赖：Task 4.6a
 
-- [ ] **Task 4.6c: 删除 KnowledgeView 中旧的移动端面板代码和方法**
+- [x] **Task 4.6c: 删除 KnowledgeView 中旧的移动端面板代码和方法**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
