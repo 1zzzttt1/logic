@@ -69,7 +69,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Teleport v-if="useTeleport" to="body">
+  <Teleport to="body" :disabled="!useTeleport">
     <button
       v-show="showBackToTop"
       class="back-to-top-btn back-to-top-ring"
@@ -116,53 +116,6 @@ onUnmounted(() => {
       </span>
     </button>
   </Teleport>
-
-  <button
-    v-else
-    v-show="showBackToTop"
-    class="back-to-top-btn back-to-top-ring"
-    :style="cssVars"
-    type="button"
-    aria-label="返回顶部"
-    @click="scrollToTop"
-  >
-    <span class="back-to-top-ring__inner">
-      <svg
-        class="back-to-top-ring__svg"
-        viewBox="0 0 56 56"
-        aria-hidden="true"
-      >
-        <circle
-          class="back-to-top-ring__track"
-          cx="28"
-          cy="28"
-          :r="progressRadius"
-        />
-        <circle
-          class="back-to-top-ring__progress"
-          cx="28"
-          cy="28"
-          :r="progressRadius"
-          :stroke-dasharray="progressCircumference"
-          :stroke-dashoffset="progressDashOffset"
-        />
-      </svg>
-
-      <span
-        v-if="!showBackToTopArrow"
-        class="back-to-top-ring__label"
-      >
-        {{ scrollProgress }}%
-      </span>
-
-      <span
-        v-else
-        class="material-symbols-outlined back-to-top-ring__icon"
-      >
-        arrow_upward
-      </span>
-    </span>
-  </button>
 </template>
 
 <style scoped>

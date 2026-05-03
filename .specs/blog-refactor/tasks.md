@@ -280,7 +280,7 @@
     - 知识库页返回顶部按钮行为与 Task 3.4 验证结果完全一致
   - 依赖：Task 3.4
 
-- [ ] **Task 3.6: 简化 BackToTopButton 模板重复**
+- [x] **Task 3.6: 简化 BackToTopButton 模板重复**
 
   - 文件：
     - `src/components/BackToTopButton.vue`
