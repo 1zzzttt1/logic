@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
 import { useScrollProgress } from '@/composables/useScrollProgress'
 import ImagePreview from '@/components/ImagePreview.vue'
+import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -515,51 +516,16 @@ watch(selectedArticle, () => {
 <template>
   <div class="knowledge-page" :class="{ collapsed: isSidebarCollapsed }">
     <Teleport to="body">
-      <aside
-        v-if="isDesktopSidebarVisible"
-        class="desktop-sidebar-left"
-        :class="{ collapsed: isSidebarCollapsed }"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <template v-if="!isSidebarCollapsed">
-          <div class="sidebar-header">
-            <p class="sidebar-series">知识库</p>
-            <h3 class="sidebar-title">教程目录</h3>
-          </div>
-
-          <nav
-            class="sidebar-nav"
-            data-lenis-prevent
-            @wheel="stopWheelPropagationWhenScrollable"
-          >
-            <div v-for="(group, index) in sidebarNav.groups" :key="group.id" class="nav-group">
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </template>
-      </aside>
+      <KnowledgeSidebar
+        v-if="isDesktopSidebarVisible && !isSidebarCollapsed"
+        mode="desktop"
+        :categories="knowledgeData"
+        :expanded-category-ids="expandedCategoryIds"
+        :selected-category="selectedCategory"
+        :selected-article="selectedArticle"
+        @navigate="(catId: string, artId: string) => handleNavClick(`#${catId}/${artId}`)"
+        @toggle-category="toggleGroup"
+      />
     </Teleport>
 
     <Teleport to="body">

@@ -365,7 +365,7 @@
 
 ### 4.2 集成桌面端侧边栏（替换模板，分批操作，2 个任务）
 
-- [ ] **Task 4.4a: 在 KnowledgeView 中使用 KnowledgeSidebar（桌面端）**
+- [x] **Task 4.4a: 在 KnowledgeView 中使用 KnowledgeSidebar（桌面端）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
@@ -374,7 +374,7 @@
     - 在模板中：将旧的桌面端侧边栏 `<aside class="desktop-sidebar-left">` 内的模板代码注释掉
     - 在 `<Teleport to="body">` 内添加 `<KnowledgeSidebar mode="desktop" ...>` 组件标签
     - 绑定 props 和 events（`@navigate` → `handleNavClick`，`@toggle-category` → `toggleGroup`）
-    - 旧代码以注释方式保留，不删除
+    - 旧代码直接删除
   - 验收标准：
     - `pnpm type-check` 通过
     - `pnpm build` 通过
