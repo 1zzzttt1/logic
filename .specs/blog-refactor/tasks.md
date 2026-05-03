@@ -385,7 +385,7 @@
     - 当前文章高亮正确
   - 依赖：Task 4.1
 
-- [ ] **Task 4.4b: 删除 KnowledgeView 中旧的桌面端侧边栏代码**
+- [x] **Task 4.4b: 删除 KnowledgeView 中旧的桌面端侧边栏代码**
 
   - 文件：
     - `src/views/KnowledgeView.vue`

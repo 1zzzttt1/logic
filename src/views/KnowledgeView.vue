@@ -942,7 +942,6 @@ html.dark .article-body {
   color: #e0e4ea;
 }
 
-.desktop-sidebar-left,
 .desktop-sidebar-right {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -950,58 +949,25 @@ html.dark .article-body {
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-.desktop-sidebar-left::-webkit-scrollbar,
 .desktop-sidebar-right::-webkit-scrollbar {
   width: 4px;
 }
 
-.desktop-sidebar-left::-webkit-scrollbar-track,
 .desktop-sidebar-right::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.desktop-sidebar-left::-webkit-scrollbar-thumb,
 .desktop-sidebar-right::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 2px;
 }
 
-html.dark .desktop-sidebar-left,
 html.dark .desktop-sidebar-right {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-html.dark .desktop-sidebar-left::-webkit-scrollbar-thumb,
 html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
-}
-
-.desktop-sidebar-left {
-  position: fixed;
-  top: 5rem;
-  left: 0;
-  bottom: 0;
-  width: var(--left-width);
-  max-width: 15.5rem;
-  border-right: 1px solid #d9dadb;
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 1200;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.desktop-sidebar-left.collapsed {
-  width: var(--left-collapsed-width);
-  max-width: var(--left-collapsed-width);
-  padding: 12px 8px;
-}
-
-html.dark .desktop-sidebar-left {
-  background: var(--surface-dark);
-  border-color: rgba(166, 185, 212, 0.14);
 }
 
 .desktop-sidebar-right {
@@ -1023,38 +989,6 @@ html.dark .desktop-sidebar-left {
 
 html.dark .desktop-sidebar-right {
   border-color: rgba(166, 185, 212, 0.14);
-}
-
-.sidebar-header {
-  flex-shrink: 0;
-  margin-bottom: 22px;
-  padding: 0 8px;
-}
-
-.sidebar-series {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8a8378;
-  margin: 0 0 6px;
-}
-
-.sidebar-title {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #475671;
-  margin: 0;
-}
-
-html.dark .sidebar-series {
-  color: #92a0b3;
-}
-
-html.dark .sidebar-title {
-  color: #c3d0e3;
 }
 
 .sidebar-nav,
