@@ -5,6 +5,7 @@ import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/d
 import { useScrollProgress } from '@/composables/useScrollProgress'
 import ImagePreview from '@/components/ImagePreview.vue'
 import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
+import KnowledgeToc from '@/components/KnowledgeToc.vue'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -529,67 +530,12 @@ watch(selectedArticle, () => {
     </Teleport>
 
     <Teleport to="body">
-      <aside
+      <KnowledgeToc
         v-if="isDesktopTocVisible && tocItems.length > 0"
-        class="desktop-sidebar-right"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <div class="toc-head">
-          <h4 class="toc-title">页面导航</h4>
-        </div>
-
-        <nav
-          class="toc-nav"
-          data-lenis-prevent
-          @wheel="stopWheelPropagationWhenScrollable"
-        >
-          <template v-for="item in tocItems" :key="item.id">
-            <a
-              :href="'#' + item.id"
-              class="toc-item"
-              :class="{
-                active: item.active,
-                'toc-item--h1': item.level === 1,
-                'toc-item--h2': item.level === 2,
-                'toc-item--h3': item.level === 3
-              }"
-              @click.prevent="scrollToAnchor(item.id)"
-            >
-              {{ item.name }}
-            </a>
-
-            <template v-for="child in item.children" :key="child.id">
-              <a
-                :href="'#' + child.id"
-                class="toc-item toc-item--child"
-                :class="{
-                  active: child.active,
-                  'toc-item--h2': child.level === 2,
-                  'toc-item--h3': child.level === 3
-                }"
-                @click.prevent="scrollToAnchor(child.id)"
-              >
-                {{ child.name }}
-              </a>
-
-              <template v-for="grandchild in child.children" :key="grandchild.id">
-                <a
-                  :href="'#' + grandchild.id"
-                  class="toc-item toc-item--child toc-item--grandchild"
-                  :class="{
-                    active: grandchild.active,
-                    'toc-item--h3': grandchild.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(grandchild.id)"
-                >
-                  {{ grandchild.name }}
-                </a>
-              </template>
-            </template>
-          </template>
-        </nav>
-      </aside>
+        mode="desktop"
+        :items="tocItems"
+        @navigate="scrollToAnchor"
+      />
     </Teleport>
 
     <Teleport to="body">
@@ -942,55 +888,6 @@ html.dark .article-body {
   color: #e0e4ea;
 }
 
-.desktop-sidebar-right {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-.desktop-sidebar-right::-webkit-scrollbar {
-  width: 4px;
-}
-
-.desktop-sidebar-right::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
-}
-
-html.dark .desktop-sidebar-right {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.desktop-sidebar-right {
-  position: fixed;
-  right: 0;
-  top: 5rem;
-  bottom: 0;
-  width: var(--right-width);
-  max-width: 14rem;
-  border-left: 1px solid rgba(186, 184, 184, 0.42);
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 10;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-html.dark .desktop-sidebar-right {
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
 .sidebar-nav,
 .toc-nav {
   flex: 1;
@@ -1143,24 +1040,6 @@ html.dark .nav-item.active {
   color: #d7e2f1;
   background: rgba(95, 110, 138, 0.18);
   border-left-color: #a6b9d4;
-}
-
-.toc-head {
-  flex-shrink: 0;
-  margin-bottom: 14px;
-  padding-left: 2px;
-}
-
-.toc-title {
-  margin: 0;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #4a5a76;
-}
-
-html.dark .toc-title {
-  color: #c2d0e4;
 }
 
 .toc-nav {

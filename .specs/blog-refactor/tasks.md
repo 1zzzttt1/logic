@@ -401,7 +401,7 @@
 
 ### 4.3 集成桌面端 TOC（2 个任务）
 
-- [ ] **Task 4.5a: 在 KnowledgeView 中使用 KnowledgeToc（桌面端）**
+- [x] **Task 4.5a: 在 KnowledgeView 中使用 KnowledgeToc（桌面端）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
@@ -420,7 +420,7 @@
     - 缩小窗口到 <1200px → TOC 消失
   - 依赖：Task 4.2, Task 4.4b
 
-- [ ] **Task 4.5b: 删除 KnowledgeView 中旧的桌面端 TOC 代码**
+- [x] **Task 4.5b: 删除 KnowledgeView 中旧的桌面端 TOC 代码**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
