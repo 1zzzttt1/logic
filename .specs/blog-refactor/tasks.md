@@ -214,7 +214,7 @@
     - 知识库页面所有 5 个分类和 16 篇文章正常加载
   - 依赖：Task 2.5, Task 2.1
 
-- [ ] **Task 3.2: 重构 articles.ts 使用共享工具**
+- [x] **Task 3.2: 重构 articles.ts 使用共享工具**
 
   - 文件：
     - `src/data/articles.ts`
