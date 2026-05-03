@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/utils/markdown'
 import { mdArticles } from '../data/articles'
 import BackToTopButton from '@/components/BackToTopButton.vue'
 
@@ -15,7 +15,7 @@ const article = computed(() => {
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
-  return marked(article.value.content)
+  return renderMarkdown(article.value.content)
 })
 
 const formatDate = (dateStr: string) => {

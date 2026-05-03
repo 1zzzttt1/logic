@@ -295,7 +295,7 @@
     - 知识库页（非 Teleport 模式）→ 返回顶部按钮正常
   - 依赖：Task 3.4
 
-- [ ] **Task 3.7: 重构 ArticleDetailView 使用共享 Markdown 工具**
+- [x] **Task 3.7: 重构 ArticleDetailView 使用共享 Markdown 工具**
 
   - 文件：
     - `src/views/ArticleDetailView.vue`
