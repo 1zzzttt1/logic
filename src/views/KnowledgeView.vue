@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
+import { useScrollProgress } from '@/composables/useScrollProgress'
 import ImagePreview from '@/components/ImagePreview.vue'
 
 const HEADER_HEIGHT = 80
@@ -21,22 +22,20 @@ const expandedCategoryIds = ref<string[]>([])
 const isDesktopSidebarVisible = ref(false)
 const isDesktopTocVisible = ref(false)
 
-const scrollProgress = ref(0)
-const showBackToTop = ref(false)
-const showBackToTopArrow = ref(false)
-
 const showImagePreview = ref(false)
 const previewImageSrc = ref('')
 
-let scrollIdleTimer: number | null = null
-let scrollRafId: number | null = null
-
-const progressRadius = 24
-const progressCircumference = 2 * Math.PI * progressRadius
-
-const progressDashOffset = computed(() => {
-  return progressCircumference * (1 - scrollProgress.value / 100)
-})
+const {
+  scrollProgress,
+  showBackToTop,
+  showBackToTopArrow,
+  progressRadius,
+  progressCircumference,
+  progressDashOffset,
+  updateScrollProgress,
+  scrollToTop,
+  clearScrollUiTimers,
+} = useScrollProgress()
 
 const updateResponsiveState = () => {
   if (typeof window === 'undefined') return
@@ -246,74 +245,6 @@ const scrollToAnchor = (id: string) => {
   }
 
   closeAllMobilePanels()
-}
-
-const updateScrollProgress = () => {
-  const scrollTop = window.scrollY || window.pageYOffset || 0
-  const doc = document.documentElement
-  const scrollHeight = doc.scrollHeight
-  const clientHeight = window.innerHeight
-  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
-
-  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
-  scrollProgress.value = Math.round(progress * 100)
-
-  showBackToTop.value = scrollTop > 120
-
-  if (!showBackToTop.value) {
-    showBackToTopArrow.value = false
-  }
-}
-
-const handleScrollProgress = () => {
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-  }
-
-  scrollRafId = window.requestAnimationFrame(() => {
-    updateScrollProgress()
-
-    if (!showBackToTop.value) return
-
-    showBackToTopArrow.value = false
-
-    if (scrollIdleTimer !== null) {
-      window.clearTimeout(scrollIdleTimer)
-    }
-
-    scrollIdleTimer = window.setTimeout(() => {
-      showBackToTopArrow.value = true
-    }, 420)
-  })
-}
-
-const scrollToTop = () => {
-  const lenis = (window as any).__lenis
-
-  if (lenis) {
-    lenis.scrollTo(0, {
-      duration: 1.2,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-    })
-    return
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-const clearScrollUiTimers = () => {
-  if (scrollIdleTimer !== null) {
-    window.clearTimeout(scrollIdleTimer)
-    scrollIdleTimer = null
-  }
-
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-    scrollRafId = null
-  }
 }
 
 let observer: IntersectionObserver | null = null
@@ -547,10 +478,8 @@ const stopWheelPropagationWhenScrollable = (e: WheelEvent) => {
 
 onMounted(() => {
   updateResponsiveState()
-  updateScrollProgress()
 
   window.addEventListener('resize', handleResize)
-  window.addEventListener('scroll', handleScrollProgress, { passive: true })
 
   const firstCategory = knowledgeData[0]
   if (firstCategory?.articles?.[0]) {
@@ -569,10 +498,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('scroll', handleScrollProgress)
   observer?.disconnect()
   unlockBodyScroll()
-  clearScrollUiTimers()
 })
 
 watch(selectedArticle, () => {

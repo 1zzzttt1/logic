@@ -266,7 +266,7 @@
     - 停止滚动后箭头出现
   - 依赖：Task 3.3
 
-- [ ] **Task 3.5: 重构 KnowledgeView 使用 useScrollProgress**
+- [x] **Task 3.5: 重构 KnowledgeView 使用 useScrollProgress**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
