@@ -231,7 +231,7 @@
     - 文章详情页正常渲染
   - 依赖：Task 2.5, Task 2.1
 
-- [ ] **Task 3.3: 创建 useScrollProgress composable**
+- [x] **Task 3.3: 创建 useScrollProgress composable**
 
   - 文件：
     - `src/composables/useScrollProgress.ts`（新建）
