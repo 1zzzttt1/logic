@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useScrollProgress } from '@/composables/useScrollProgress'
 
 interface Props {
   showAt?: number
@@ -33,19 +34,17 @@ const props = withDefaults(defineProps<Props>(), {
   useTeleport: true,
 })
 
-const scrollProgress = ref(0)
-const showBackToTop = ref(false)
-const showBackToTopArrow = ref(false)
-
-let scrollIdleTimer: number | null = null
-let scrollRafId: number | null = null
-
-const progressRadius = 24
-const progressCircumference = 2 * Math.PI * progressRadius
-
-const progressDashOffset = computed(() => {
-  return progressCircumference * (1 - scrollProgress.value / 100)
-})
+const {
+  scrollProgress,
+  showBackToTop,
+  showBackToTopArrow,
+  progressRadius,
+  progressCircumference,
+  progressDashOffset,
+  updateScrollProgress,
+  scrollToTop,
+  clearScrollUiTimers,
+} = useScrollProgress({ showAt: props.showAt, idleDelay: props.idleDelay })
 
 const cssVars = computed(() => ({
   '--back-top-right': props.right,
@@ -60,84 +59,12 @@ const cssVars = computed(() => ({
   '--back-top-z-index': String(props.zIndex),
 }))
 
-const updateScrollProgress = () => {
-  const scrollTop = window.scrollY || window.pageYOffset || 0
-  const doc = document.documentElement
-  const scrollHeight = doc.scrollHeight
-  const clientHeight = window.innerHeight
-  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
-
-  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
-  scrollProgress.value = Math.round(progress * 100)
-
-  showBackToTop.value = scrollTop > props.showAt
-
-  if (!showBackToTop.value) {
-    showBackToTopArrow.value = false
-  }
-}
-
-const handleScrollProgress = () => {
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-  }
-
-  scrollRafId = window.requestAnimationFrame(() => {
-    updateScrollProgress()
-
-    if (!showBackToTop.value) return
-
-    showBackToTopArrow.value = false
-
-    if (scrollIdleTimer !== null) {
-      window.clearTimeout(scrollIdleTimer)
-    }
-
-    scrollIdleTimer = window.setTimeout(() => {
-      showBackToTopArrow.value = true
-    }, props.idleDelay)
-  })
-}
-
-const scrollToTop = () => {
-  const lenis = (window as any).__lenis
-
-  if (lenis) {
-    lenis.scrollTo(0, {
-      duration: 1.2,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-    })
-    return
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-const clearScrollUiTimers = () => {
-  if (scrollIdleTimer !== null) {
-    window.clearTimeout(scrollIdleTimer)
-    scrollIdleTimer = null
-  }
-
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-    scrollRafId = null
-  }
-}
-
 onMounted(() => {
-  updateScrollProgress()
-  window.addEventListener('scroll', handleScrollProgress, { passive: true })
   window.addEventListener('resize', updateScrollProgress)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScrollProgress)
   window.removeEventListener('resize', updateScrollProgress)
-  clearScrollUiTimers()
 })
 </script>
 

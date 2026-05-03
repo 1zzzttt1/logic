@@ -248,7 +248,7 @@
   - 人工验证：无（新文件未被引用）
   - 依赖：Task 2.2, Task 2.3
 
-- [ ] **Task 3.4: 重构 BackToTopButton 使用 useScrollProgress**
+- [x] **Task 3.4: 重构 BackToTopButton 使用 useScrollProgress**
 
   - 文件：
     - `src/components/BackToTopButton.vue`
