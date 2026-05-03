@@ -331,7 +331,7 @@
   - 人工验证：无（新文件未被引用）
   - 依赖：Task 2.1（需要 KnowledgeCategory、KnowledgeArticle 类型）
 
-- [ ] **Task 4.2: 创建 KnowledgeToc 组件**
+- [x] **Task 4.2: 创建 KnowledgeToc 组件**
 
   - 文件：
     - `src/components/KnowledgeToc.vue`（新建）
