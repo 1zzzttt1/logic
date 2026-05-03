@@ -316,7 +316,7 @@
 
 ### 4.1 新建子组件（不修改已有代码，3 个任务）
 
-- [ ] **Task 4.1: 创建 KnowledgeSidebar 组件**
+- [x] **Task 4.1: 创建 KnowledgeSidebar 组件**
 
   - 文件：
     - `src/components/KnowledgeSidebar.vue`（新建）
