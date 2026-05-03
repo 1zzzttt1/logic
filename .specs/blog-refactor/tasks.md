@@ -346,7 +346,7 @@
   - 人工验证：无（新文件未被引用）
   - 依赖：Task 2.1（需要 TocItem 类型）
 
-- [ ] **Task 4.3: 创建 KnowledgeMobilePanels 组件**
+- [x] **Task 4.3: 创建 KnowledgeMobilePanels 组件**
 
   - 文件：
     - `src/components/KnowledgeMobilePanels.vue`（新建）
