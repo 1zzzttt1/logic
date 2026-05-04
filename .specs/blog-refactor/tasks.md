@@ -488,7 +488,7 @@
 
 ### 4.5 集成共享 Markdown 渲染（2 个任务）
 
-- [ ] **Task 4.7a: 引入共享 Markdown 工具（并存，不删旧代码）**
+- [x] **Task 4.7a: 引入共享 Markdown 工具（并存，不删旧代码）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
@@ -506,7 +506,7 @@
     - 浏览器控制台无 assert 失败（新旧输出一致）
   - 依赖：Task 2.4, Task 4.6c
 
-- [ ] **Task 4.7b: 切换为共享 Markdown 工具（删除旧代码）**
+- [x] **Task 4.7b: 切换为共享 Markdown 工具（删除旧代码）**
 
   - 文件：
     - `src/views/KnowledgeView.vue`
