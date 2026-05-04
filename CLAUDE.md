@@ -64,7 +64,7 @@ Vite base 为 `/logic/`，开发服务器启动后访问 `http://localhost:5173/
 
 Article 类型的 frontmatter 还支持 `tags: [tag1, tag2]`（方括号数组格式）、`publishedAt: string`、`summary: string`。
 
-**注意**: `src/data/knowledge.ts` 和 `src/data/articles.ts` 各自实现了一份几乎相同的 `parseFrontmatter` 函数，修改前端解析逻辑时需要同步两处。
+**注意**: `parseFrontmatter` 函数已统一到 `src/utils/frontmatter.ts`，`knowledge.ts` 和 `articles.ts` 均导入该共享版本。
 
 ### 知识库分类体系
 
@@ -85,7 +85,7 @@ const { navigateWithTransition, registerPath } = usePageTransition()
 // 导航时调用 navigateWithTransition(to, options) 替代 router.push
 ```
 
-**Lenis 平滑滚动**: 在 `main.ts` 中全局初始化，通过 `(window as any).__lenis` 访问实例。需要平滑滚动到指定位置时先检查 `window.__lenis` 是否存在。
+**Lenis 平滑滚动**: 在 `main.ts` 中全局初始化并挂载到 `window.__lenis`。通过 `utils/scroll.ts` 的 `getLenis()` 类型安全获取实例，`scrollToTop()` 和 `scrollToAnchor()` 封装了 Lenis 优先、原生 fallback 逻辑。
 
 ### 知识库页面布局
 
@@ -105,26 +105,56 @@ const { navigateWithTransition, registerPath } = usePageTransition()
 
 通过给 `html` 元素添加/移除 `dark` 类触发。所有颜色变量在 `App.vue` 的 `:root` / `html.dark` 中定义，组件通过 CSS 变量引用。
 
+### 共享常量
+
+所有魔法数字集中在 `src/constants/index.ts`，包括断点、页头高度、滚动参数、按钮尺寸等。组件和 composable 从该文件导入所需常量。
+
+### Markdown 渲染
+
+共享渲染器位于 `src/utils/markdown.ts`，导出：
+
+| 函数 | 用途 |
+|------|------|
+| `slugifyHeading(text)` | 生成标题锚点 ID |
+| `generateToc(content)` | 从 markdown 提取平铺 TOC |
+| `buildNestedToc(flatToc)` | 平铺 TOC → 嵌套树 |
+| `createKnowledgeRenderer(basePath)` | 工厂函数，创建带图片路径/外链处理的 marked Renderer |
+| `renderMarkdown(content, basePath?)` | 便捷函数，一步渲染 markdown → HTML |
+
+KnowledgeView 和 ArticleDetailView 均通过 `renderMarkdown` 渲染内容。
+
 ### 组件目录
 
 ```
 src/
 ├── views/            # 页面组件
 ├── components/       # UI 组件
-│   ├── AppHeader.vue              # 顶部导航
-│   ├── PreloaderReveal.vue        # 首页预加载动画
-│   ├── PageTransitionOverlay.vue  # 页面切换过渡动画（SVG clip-path）
-│   ├── ImagePreview.vue           # 图片点击放大预览
-│   └── BackToTopButton.vue        # 返回顶部按钮（环形进度条）
+│   ├── AppHeader.vue                 # 顶部导航
+│   ├── PreloaderReveal.vue           # 首页预加载动画
+│   ├── PageTransitionOverlay.vue     # 页面切换过渡动画（SVG clip-path）
+│   ├── ImagePreview.vue              # 图片点击放大预览
+│   ├── BackToTopButton.vue           # 返回顶部按钮（环形进度条）
+│   ├── KnowledgeSidebar.vue          # 知识库侧边栏（桌面/移动端）
+│   ├── KnowledgeToc.vue              # 知识库 TOC 目录（桌面/移动端）
+│   └── KnowledgeMobilePanels.vue     # 移动端抽屉面板容器
 ├── composables/      # 组合式函数
-│   ├── useHomeReveal.ts    # 首页动画编排
-│   └── usePageTransition.ts # 页面切换过渡（GSAP）
+│   ├── useHomeReveal.ts       # 首页动画编排
+│   ├── usePageTransition.ts   # 页面切换过渡（GSAP）
+│   └── useScrollProgress.ts   # 滚动进度追踪（返回顶部按钮复用）
 ├── data/
 │   ├── knowledge/   # 按分类组织的 Markdown 知识文章
 │   ├── articles/    # Markdown 文章（articles 页面用）
 │   ├── knowledge.ts # 知识库数据加载和类型
 │   ├── articles.ts  # 文章数据和类型
 │   └── author.ts    # 作者信息
+├── types/           # 共享 TypeScript 类型
+│   └── index.ts     # KnowledgeArticle, KnowledgeCategory, Article, Author, TocItem
+├── constants/       # 共享常量
+│   └── index.ts     # 断点、尺寸、滚动参数等魔法数字
+├── utils/           # 工具函数
+│   ├── frontmatter.ts  # YAML frontmatter 解析
+│   ├── markdown.ts     # Markdown 渲染（marked 封装）
+│   └── scroll.ts       # Lenis 滚动封装（getLenis/scrollToTop/scrollToAnchor）
 └── router/          # Vue Router 配置
 ```
 

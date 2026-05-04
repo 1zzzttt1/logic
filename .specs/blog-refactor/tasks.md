@@ -604,7 +604,7 @@
 
 ## Phase 6: 更新文档（1 个任务）
 
-- [ ] **Task 6.1: 更新 CLAUDE.md**
+- [x] **Task 6.1: 更新 CLAUDE.md**
 
   - 文件：
     - `CLAUDE.md`
