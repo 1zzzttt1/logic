@@ -557,7 +557,7 @@
   - 人工验证：无
   - 依赖：无
 
-- [ ] **Task 5.3: 清理 router 未用导入**
+- [x] **Task 5.3: 清理 router 未用导入**
 
   - 文件：
     - `src/router/index.ts`
