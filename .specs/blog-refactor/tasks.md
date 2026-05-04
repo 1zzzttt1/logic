@@ -532,7 +532,7 @@
 
 ## Phase 5: 清理死代码（5 个任务）
 
-- [ ] **Task 5.1: 删除未使用的 Pinia store**
+- [x] **Task 5.1: 删除未使用的 Pinia store**
 
   - 文件：
     - `src/stores/counter.ts`（删除）
