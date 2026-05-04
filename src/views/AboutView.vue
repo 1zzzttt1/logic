@@ -78,44 +78,6 @@ const openGitHub = () => {
   text-align: center;
 }
 
-.avatar-section {
-  margin-bottom: 2rem;
-}
-
-.avatar-wrapper {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid rgba(95, 110, 138, 0.3);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-html.dark .avatar-wrapper {
-  border-color: rgba(95, 110, 138, 0.5);
-  background: rgba(30, 45, 70, 0.8);
-}
-
-.avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #5F6E8A;
-  color: white;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 3rem;
-  font-weight: 700;
-}
-
 .intro-section {
   margin-bottom: 3rem;
 }
@@ -258,11 +220,6 @@ html.dark .footer-note p {
 
   .greeting {
     font-size: 2.5rem;
-  }
-
-  .avatar-wrapper {
-    width: 140px;
-    height: 140px;
   }
 }
 </style>

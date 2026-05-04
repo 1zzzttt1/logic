@@ -570,7 +570,7 @@
     - 所有 5 个路由正常加载
   - 依赖：无
 
-- [ ] **Task 5.4: 清理 AppHeader 未用导入和 AboutView 死 CSS**
+- [x] **Task 5.4: 清理 AppHeader 未用导入和 AboutView 死 CSS**
 
   - 文件：
     - `src/components/AppHeader.vue`
