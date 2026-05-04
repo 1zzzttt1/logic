@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { marked } from 'marked'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
+import { useScrollProgress } from '@/composables/useScrollProgress'
 import ImagePreview from '@/components/ImagePreview.vue'
+import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
+import KnowledgeToc from '@/components/KnowledgeToc.vue'
+import KnowledgeMobilePanels from '@/components/KnowledgeMobilePanels.vue'
+import { renderMarkdown, generateToc, buildNestedToc } from '@/utils/markdown'
+import type { TocItem } from '@/types'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -21,22 +26,20 @@ const expandedCategoryIds = ref<string[]>([])
 const isDesktopSidebarVisible = ref(false)
 const isDesktopTocVisible = ref(false)
 
-const scrollProgress = ref(0)
-const showBackToTop = ref(false)
-const showBackToTopArrow = ref(false)
-
 const showImagePreview = ref(false)
 const previewImageSrc = ref('')
 
-let scrollIdleTimer: number | null = null
-let scrollRafId: number | null = null
-
-const progressRadius = 24
-const progressCircumference = 2 * Math.PI * progressRadius
-
-const progressDashOffset = computed(() => {
-  return progressCircumference * (1 - scrollProgress.value / 100)
-})
+const {
+  scrollProgress,
+  showBackToTop,
+  showBackToTopArrow,
+  progressRadius,
+  progressCircumference,
+  progressDashOffset,
+  updateScrollProgress,
+  scrollToTop,
+  clearScrollUiTimers,
+} = useScrollProgress()
 
 const updateResponsiveState = () => {
   if (typeof window === 'undefined') return
@@ -46,48 +49,6 @@ const updateResponsiveState = () => {
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
-}
-
-const lockBodyScroll = () => {
-  document.body.style.overflow = 'hidden'
-  document.documentElement.style.overflow = 'hidden'
-}
-
-const unlockBodyScroll = () => {
-  document.body.style.overflow = ''
-  document.documentElement.style.overflow = ''
-}
-
-const openMobileSidebar = () => {
-  showMobileToc.value = false
-  showMobileSidebar.value = true
-  lockBodyScroll()
-}
-
-const closeMobileSidebar = () => {
-  showMobileSidebar.value = false
-  if (!showMobileToc.value) {
-    unlockBodyScroll()
-  }
-}
-
-const openMobileToc = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = true
-  lockBodyScroll()
-}
-
-const closeMobileToc = () => {
-  showMobileToc.value = false
-  if (!showMobileSidebar.value) {
-    unlockBodyScroll()
-  }
-}
-
-const closeAllMobilePanels = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = false
-  unlockBodyScroll()
 }
 
 const sidebarNav = computed(() => {
@@ -133,6 +94,10 @@ const selectArticle = (categoryId: string, articleId: string) => {
   const articles = getArticlesByCategory(categoryId)
   selectedArticle.value = articles.find((a) => a.id === articleId) || null
 
+  if (selectedArticle.value) {
+    window.location.hash = `#/knowledge#${categoryId}/${articleId}`
+  }
+
   nextTick(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
     updateScrollProgress()
@@ -144,79 +109,6 @@ const handleNavClick = (path: string) => {
   if (match && match[1] && match[2]) {
     selectArticle(match[1], match[2])
   }
-  closeAllMobilePanels()
-}
-
-function slugifyHeading(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-type TocItem = {
-  name: string
-  id: string
-  level: number
-  active: boolean
-  children: TocItem[]
-}
-
-function generateToc(content: string): TocItem[] {
-  if (!content) return []
-
-  const tokens = marked.lexer(content)
-  const toc: TocItem[] = []
-
-  const walkTokens = (items: any[]) => {
-    for (const token of items) {
-      if (token.type === 'heading' && token.depth >= 1 && token.depth <= 3) {
-        const text = String(token.text || '').trim()
-        const id = slugifyHeading(text)
-
-        if (!text || !id) continue
-
-        toc.push({
-          name: text,
-          id,
-          level: token.depth,
-          active: false,
-          children: [],
-        })
-      }
-
-      // 某些 token 可能带有嵌套 token，递归处理
-      if (Array.isArray(token.tokens)) {
-        walkTokens(token.tokens)
-      }
-    }
-  }
-
-  walkTokens(tokens)
-  return toc
-}
-
-function buildNestedToc(flatToc: TocItem[]): TocItem[] {
-  const result: TocItem[] = []
-  const stack: TocItem[] = []
-
-  for (const item of flatToc) {
-    const newItem: TocItem = { ...item, children: [] }
-
-    while (stack.length > 0 && stack[stack.length - 1]!.level >= item.level) {
-      stack.pop()
-    }
-
-    if (stack.length === 0) {
-      result.push(newItem)
-    } else {
-      stack[stack.length - 1]!.children.push(newItem)
-    }
-
-    stack.push(newItem)
-  }
-
-  return result
 }
 
 const tocItems = ref<TocItem[]>([])
@@ -241,75 +133,8 @@ const scrollToAnchor = (id: string) => {
     })
   }
 
-  closeAllMobilePanels()
-}
-
-const updateScrollProgress = () => {
-  const scrollTop = window.scrollY || window.pageYOffset || 0
-  const doc = document.documentElement
-  const scrollHeight = doc.scrollHeight
-  const clientHeight = window.innerHeight
-  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
-
-  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
-  scrollProgress.value = Math.round(progress * 100)
-
-  showBackToTop.value = scrollTop > 120
-
-  if (!showBackToTop.value) {
-    showBackToTopArrow.value = false
-  }
-}
-
-const handleScrollProgress = () => {
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-  }
-
-  scrollRafId = window.requestAnimationFrame(() => {
-    updateScrollProgress()
-
-    if (!showBackToTop.value) return
-
-    showBackToTopArrow.value = false
-
-    if (scrollIdleTimer !== null) {
-      window.clearTimeout(scrollIdleTimer)
-    }
-
-    scrollIdleTimer = window.setTimeout(() => {
-      showBackToTopArrow.value = true
-    }, 420)
-  })
-}
-
-const scrollToTop = () => {
-  const lenis = (window as any).__lenis
-
-  if (lenis) {
-    lenis.scrollTo(0, {
-      duration: 1.2,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-    })
-    return
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-const clearScrollUiTimers = () => {
-  if (scrollIdleTimer !== null) {
-    window.clearTimeout(scrollIdleTimer)
-    scrollIdleTimer = null
-  }
-
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-    scrollRafId = null
-  }
+  showMobileSidebar.value = false
+  showMobileToc.value = false
 }
 
 let observer: IntersectionObserver | null = null
@@ -334,6 +159,7 @@ const setupObserver = () => {
   if (selectedArticle.value?.content) {
     const flatToc = generateToc(selectedArticle.value.content)
     tocItems.value = buildNestedToc(flatToc)
+
   } else {
     tocItems.value = []
   }
@@ -374,97 +200,6 @@ const setupObserver = () => {
   })
 }
 
-const renderMarkdown = (content: string): string => {
-  if (!content) return ''
-
-  const BASE_PATH = '/logic/'
-
-  const renderer = new marked.Renderer()
-
-  renderer.heading = (token: any) => {
-    const text = String(token?.text ?? '')
-    const depth = Number(token?.depth ?? 1)
-    const id = slugifyHeading(text)
-    return `<h${depth} class="section-title" id="${id}">${text}</h${depth}>`
-  }
-
-  renderer.link = (token: any) => {
-    const href = String(token?.href ?? '')
-    const text = String(token?.text ?? href)
-    const isExternal = /^https?:\/\//.test(href)
-    const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
-    const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
-    return `<a href="${href}"${target}>${text}${icon}</a>`
-  }
-
-  renderer.image = (token: any) => {
-    const href = String(token?.href ?? '')
-    const text = String(token?.text ?? '')
-    let normalizedSrc = ''
-
-    if (/^https?:\/\//.test(href) || href.startsWith('/logic/')) {
-      normalizedSrc = href
-    } else if (href.startsWith('/')) {
-      normalizedSrc = BASE_PATH + href.slice(1)
-    } else {
-      normalizedSrc = BASE_PATH + href.replace(/^\.\//, '')
-    }
-
-    return `<img src="${normalizedSrc}" alt="${text}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
-  }
-
-  renderer.codespan = (token: any) => {
-    const text = String(token?.text ?? '')
-    return `<code class="inline-code">${text}</code>`
-  }
-
-  renderer.code = (token: any) => {
-    const text = String(token?.text ?? '')
-    const lang = String(token?.lang ?? '')
-    const languageClass = lang ? ` language-${lang}` : ''
-    return `<pre class="code-block"><code class="${languageClass}">${text}</code></pre>`
-  }
-
-  renderer.table = function (token: any) {
-    const parseInline = (cell: any) => {
-      if (cell?.tokens && Array.isArray(cell.tokens)) {
-        return this.parser.parseInline(cell.tokens)
-      }
-      return String(cell?.text ?? '')
-    }
-
-    const headerHtml = Array.isArray(token?.header)
-      ? token.header.map((cell: any) => `<th>${parseInline(cell)}</th>`).join('')
-      : ''
-
-    const bodyHtml = Array.isArray(token?.rows)
-      ? token.rows
-          .map((row: any[]) => {
-            const tds = Array.isArray(row)
-              ? row.map((cell: any) => `<td>${parseInline(cell)}</td>`).join('')
-              : ''
-            return `<tr>${tds}</tr>`
-          })
-          .join('')
-      : ''
-
-    return `
-      <div class="table-wrap">
-        <table class="markdown-table">
-          <thead><tr>${headerHtml}</tr></thead>
-          <tbody>${bodyHtml}</tbody>
-        </table>
-      </div>
-    `
-  }
-
-  return marked.parse(content, {
-    gfm: true,
-    breaks: false,
-    renderer,
-  }) as string
-}
-
 const currentCategoryArticles = computed(() => {
   const category = knowledgeData.find((c) => c.id === selectedCategory.value)
   return category?.articles || []
@@ -501,7 +236,8 @@ const handleResize = () => {
   updateScrollProgress()
 
   if (window.innerWidth >= DESKTOP_BREAKPOINT) {
-    closeAllMobilePanels()
+    showMobileSidebar.value = false
+    showMobileToc.value = false
   }
 }
 
@@ -541,10 +277,8 @@ const stopWheelPropagationWhenScrollable = (e: WheelEvent) => {
 
 onMounted(() => {
   updateResponsiveState()
-  updateScrollProgress()
 
   window.addEventListener('resize', handleResize)
-  window.addEventListener('scroll', handleScrollProgress, { passive: true })
 
   const firstCategory = knowledgeData[0]
   if (firstCategory?.articles?.[0]) {
@@ -563,10 +297,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('scroll', handleScrollProgress)
   observer?.disconnect()
-  unlockBodyScroll()
-  clearScrollUiTimers()
 })
 
 watch(selectedArticle, () => {
@@ -582,226 +313,53 @@ watch(selectedArticle, () => {
 <template>
   <div class="knowledge-page" :class="{ collapsed: isSidebarCollapsed }">
     <Teleport to="body">
-      <aside
-        v-if="isDesktopSidebarVisible"
-        class="desktop-sidebar-left"
-        :class="{ collapsed: isSidebarCollapsed }"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <template v-if="!isSidebarCollapsed">
-          <div class="sidebar-header">
-            <p class="sidebar-series">知识库</p>
-            <h3 class="sidebar-title">教程目录</h3>
-          </div>
-
-          <nav
-            class="sidebar-nav"
-            data-lenis-prevent
-            @wheel="stopWheelPropagationWhenScrollable"
-          >
-            <div v-for="(group, index) in sidebarNav.groups" :key="group.id" class="nav-group">
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </template>
-      </aside>
+      <KnowledgeSidebar
+        v-if="isDesktopSidebarVisible && !isSidebarCollapsed"
+        mode="desktop"
+        :categories="knowledgeData"
+        :expanded-category-ids="expandedCategoryIds"
+        :selected-category="selectedCategory"
+        :selected-article="selectedArticle"
+        @navigate="(catId: string, artId: string) => handleNavClick(`#${catId}/${artId}`)"
+        @toggle-category="toggleGroup"
+      />
     </Teleport>
 
     <Teleport to="body">
-      <aside
+      <KnowledgeToc
         v-if="isDesktopTocVisible && tocItems.length > 0"
-        class="desktop-sidebar-right"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <div class="toc-head">
-          <h4 class="toc-title">页面导航</h4>
-        </div>
-
-        <nav
-          class="toc-nav"
-          data-lenis-prevent
-          @wheel="stopWheelPropagationWhenScrollable"
-        >
-          <template v-for="item in tocItems" :key="item.id">
-            <a
-              :href="'#' + item.id"
-              class="toc-item"
-              :class="{
-                active: item.active,
-                'toc-item--h1': item.level === 1,
-                'toc-item--h2': item.level === 2,
-                'toc-item--h3': item.level === 3
-              }"
-              @click.prevent="scrollToAnchor(item.id)"
-            >
-              {{ item.name }}
-            </a>
-
-            <template v-for="child in item.children" :key="child.id">
-              <a
-                :href="'#' + child.id"
-                class="toc-item toc-item--child"
-                :class="{
-                  active: child.active,
-                  'toc-item--h2': child.level === 2,
-                  'toc-item--h3': child.level === 3
-                }"
-                @click.prevent="scrollToAnchor(child.id)"
-              >
-                {{ child.name }}
-              </a>
-
-              <template v-for="grandchild in child.children" :key="grandchild.id">
-                <a
-                  :href="'#' + grandchild.id"
-                  class="toc-item toc-item--child toc-item--grandchild"
-                  :class="{
-                    active: grandchild.active,
-                    'toc-item--h3': grandchild.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(grandchild.id)"
-                >
-                  {{ grandchild.name }}
-                </a>
-              </template>
-            </template>
-          </template>
-        </nav>
-      </aside>
+        mode="desktop"
+        :items="tocItems"
+        @navigate="scrollToAnchor"
+      />
     </Teleport>
 
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileSidebar }"
-        @click="closeMobileSidebar"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--left" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">教程目录</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileSidebar">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <nav class="sidebar-nav">
-            <div
-              v-for="(group, index) in sidebarNav.groups"
-              :key="group.id"
-              class="nav-group"
-            >
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
-
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileToc }"
-        @click="closeMobileToc"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--right" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">页面导航</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileToc">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <nav class="toc-nav mobile-toc-nav">
-            <template v-for="item in tocItems" :key="item.id">
-              <a
-                :href="'#' + item.id"
-                class="toc-item"
-                :class="{
-                  active: item.active,
-                  'toc-item--h1': item.level === 1,
-                  'toc-item--h2': item.level === 2,
-                  'toc-item--h3': item.level === 3
-                }"
-                @click.prevent="scrollToAnchor(item.id)"
-              >
-                {{ item.name }}
-              </a>
-              <template v-for="child in item.children" :key="child.id">
-                <a
-                  :href="'#' + child.id"
-                  class="toc-item toc-item--child"
-                  :class="{
-                    active: child.active,
-                    'toc-item--h2': child.level === 2,
-                    'toc-item--h3': child.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(child.id)"
-                >
-                  {{ child.name }}
-                </a>
-                <template v-for="grandchild in child.children" :key="grandchild.id">
-                  <a
-                    :href="'#' + grandchild.id"
-                    class="toc-item toc-item--child toc-item--grandchild"
-                    :class="{
-                      active: grandchild.active,
-                      'toc-item--h3': grandchild.level === 3
-                    }"
-                    @click.prevent="scrollToAnchor(grandchild.id)"
-                  >
-                    {{ grandchild.name }}
-                  </a>
-                </template>
-              </template>
-            </template>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Task 4.6a+4.6b: 使用 KnowledgeMobilePanels 管理移动端侧边栏和 TOC 面板 -->
+    <KnowledgeMobilePanels
+      :show-sidebar="showMobileSidebar"
+      :show-toc="showMobileToc"
+      @close-sidebar="showMobileSidebar = false"
+      @close-toc="showMobileToc = false"
+    >
+      <template #sidebar>
+        <KnowledgeSidebar
+          mode="mobile"
+          :categories="knowledgeData"
+          :expanded-category-ids="expandedCategoryIds"
+          :selected-category="selectedCategory"
+          :selected-article="selectedArticle"
+          @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false; }"
+          @toggle-category="toggleGroup"
+        />
+      </template>
+      <template #toc>
+        <KnowledgeToc
+          mode="mobile"
+          :items="tocItems"
+          @navigate="scrollToAnchor"
+        />
+      </template>
+    </KnowledgeMobilePanels>
 
     <main class="main-content">
       <Teleport to=".page-content">
@@ -809,7 +367,7 @@ watch(selectedArticle, () => {
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--left"
             type="button"
-            @click="openMobileSidebar"
+            @click="showMobileToc = false; showMobileSidebar = true"
           >
             <span class="material-symbols-outlined">menu</span>
             <span>教程目录</span>
@@ -818,7 +376,7 @@ watch(selectedArticle, () => {
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--right"
             type="button"
-            @click="openMobileToc"
+            @click="showMobileSidebar = false; showMobileToc = true"
             :disabled="tocItems.length === 0"
           >
             <span>页面导航</span>
@@ -1043,121 +601,6 @@ html.dark .article-body {
   color: #e0e4ea;
 }
 
-.desktop-sidebar-left,
-.desktop-sidebar-right {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar,
-.desktop-sidebar-right::-webkit-scrollbar {
-  width: 4px;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-track,
-.desktop-sidebar-right::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-thumb,
-.desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
-}
-
-html.dark .desktop-sidebar-left,
-html.dark .desktop-sidebar-right {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-html.dark .desktop-sidebar-left::-webkit-scrollbar-thumb,
-html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.desktop-sidebar-left {
-  position: fixed;
-  top: 5rem;
-  left: 0;
-  bottom: 0;
-  width: var(--left-width);
-  max-width: 15.5rem;
-  border-right: 1px solid #d9dadb;
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 1200;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.desktop-sidebar-left.collapsed {
-  width: var(--left-collapsed-width);
-  max-width: var(--left-collapsed-width);
-  padding: 12px 8px;
-}
-
-html.dark .desktop-sidebar-left {
-  background: var(--surface-dark);
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
-.desktop-sidebar-right {
-  position: fixed;
-  right: 0;
-  top: 5rem;
-  bottom: 0;
-  width: var(--right-width);
-  max-width: 14rem;
-  border-left: 1px solid rgba(186, 184, 184, 0.42);
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 10;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-html.dark .desktop-sidebar-right {
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
-.sidebar-header {
-  flex-shrink: 0;
-  margin-bottom: 22px;
-  padding: 0 8px;
-}
-
-.sidebar-series {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8a8378;
-  margin: 0 0 6px;
-}
-
-.sidebar-title {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #475671;
-  margin: 0;
-}
-
-html.dark .sidebar-series {
-  color: #92a0b3;
-}
-
-html.dark .sidebar-title {
-  color: #c3d0e3;
-}
-
 .sidebar-nav,
 .toc-nav {
   flex: 1;
@@ -1310,24 +753,6 @@ html.dark .nav-item.active {
   color: #d7e2f1;
   background: rgba(95, 110, 138, 0.18);
   border-left-color: #a6b9d4;
-}
-
-.toc-head {
-  flex-shrink: 0;
-  margin-bottom: 14px;
-  padding-left: 2px;
-}
-
-.toc-title {
-  margin: 0;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #4a5a76;
-}
-
-html.dark .toc-title {
-  color: #c2d0e4;
 }
 
 .toc-nav {

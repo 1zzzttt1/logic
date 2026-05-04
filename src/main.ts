@@ -21,3 +21,4 @@ const lenis = new Lenis({
   smoothWheel: true,
   touchMultiplier: 1.2,
 })
+;(window as any).__lenis = lenis

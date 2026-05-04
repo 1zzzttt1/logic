@@ -8,9 +8,9 @@ const { playHeroTitleReveal, cleanup } = useHeroTitleReveal()
 const { heroGateReady, preloaderPlayedInRuntime } = useHomeRevealRuntime()
 const { navigateWithTransition, isTransitioning } = usePageTransition()
 
-const goToKnowledge = () => {
+const goToKnowledge = async () => {
   if (isTransitioning.value) return
-  navigateWithTransition('/knowledge')
+  await navigateWithTransition('/knowledge')
 }
 
 const isDesktop = () => window.innerWidth >= 768

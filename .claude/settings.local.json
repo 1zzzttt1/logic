@@ -7,7 +7,103 @@
       "WebSearch",
       "WebFetch(domain:webkit.org)",
       "Bash(cd:*)",
-      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)"
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
+      "Skill(update-config)",
+      "Bash(pnpm type-check:*)",
+      "Bash(pnpm build:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' 2>/dev/null); is_push=$(echo \"$cmd\" | grep -c 'git push' || echo 0); has_force=$(echo \"$cmd\" | grep -cEe '--force' -e ' -f ' -e ' -f$' || echo 0); has_main=$(echo \"$cmd\" | grep -cEe 'main' -e 'master' || echo 0); if [ \"$is_push\" -gt 0 ] && [ \"$has_force\" -gt 0 ] && [ \"$has_main\" -gt 0 ]; then echo '{\"continue\":false,\"stopReason\":\"BLOCKED: Force push to main/master is forbidden (auto-deploys to GitHub Pages)\",\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Force push to main/master triggers auto-deploy\"}}'; elif [ \"$is_push\" -gt 0 ] && [ \"$has_force\" -gt 0 ]; then echo '{\"continue\":false,\"stopReason\":\"BLOCKED: Force push is forbidden (can overwrite remote history)\",\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Force push can overwrite remote history\"}}'; elif [ \"$is_push\" -gt 0 ] && [ \"$has_main\" -gt 0 ]; then echo '{\"continue\":false,\"stopReason\":\"BLOCKED: Push to main/master triggers auto-deploy. Push to a feature branch instead.\",\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Push to main triggers auto-deploy\"}}'; fi",
+            "if": "Bash(git push:*)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' 2>/dev/null); if echo \"$cmd\" | grep -qE 'git reset --hard'; then echo '{\"continue\":false,\"stopReason\":\"BLOCKED: git reset --hard irreversibly discards uncommitted work\",\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"git reset --hard discards uncommitted work\"}}'; fi",
+            "if": "Bash(git reset:*)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' 2>/dev/null); if echo \"$cmd\" | grep -qE 'git branch .*-D'; then echo '{\"systemMessage\":\"WARNING: git branch -D force-deletes a branch irrecoverably\",\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"Warning for branch -D\"}}'; fi",
+            "if": "Bash(git branch:*)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' 2>/dev/null); if echo \"$cmd\" | grep -qE 'git clean.*-f'; then echo '{\"systemMessage\":\"WARNING: git clean -f deletes untracked files permanently\",\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"Warning for git clean\"}}'; fi",
+            "if": "Bash(git clean:*)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command' 2>/dev/null); if echo \"$cmd\" | grep -qE 'rm .*-rf.*(src/|.git|node_modules)'; then echo '{\"systemMessage\":\"WARNING: This rm -rf targets project source or config files\",\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"Warning for rm -rf on critical paths\"}}'; fi",
+            "if": "Bash(rm:*)",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path' 2>/dev/null); if echo \"$file\" | grep -qE 'settings(\\.local)?\\.json$'; then echo '{\"systemMessage\":\"NOTE: Editing Claude Code settings file. Ensure changes are intentional.\",\"continue\":true}'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"REMINDER: Run pnpm type-check && pnpm build to verify. Push to main = auto-deploy to GitHub Pages.\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"REMINDER: After committing, run pnpm type-check && pnpm build to verify. Pushing to main triggers auto-deploy.\"}}'",
+            "if": "Bash(git commit:*)",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "branch=$(git branch --show-current 2>/dev/null); if [ \"$branch\" = \"main\" ]; then echo '{\"systemMessage\":\"WARNING: You are on main branch. Any push triggers auto-deploy to GitHub Pages. Switch with: git checkout -b <branch-name>\"}'; fi",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

@@ -5,7 +5,6 @@ import {
   onMounted,
   onUnmounted,
   nextTick,
-  Teleport,
 } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
