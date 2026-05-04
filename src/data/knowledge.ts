@@ -79,7 +79,7 @@ function convertToArticles(modules: Record<string, unknown>, category: string): 
 export const aiBasicsArticles = convertToArticles(aiBasicsModules, 'ai-basics')
 export const claudeCodeArticles = convertToArticles(claudeCodeModules, 'claude-code')
 export const aiDevelopmentArticles = convertToArticles(aiDevelopmentModules, 'ai-development')
-export const buildwithClaudeCodeArticles = convertToArticles(buildWithClaudeCodeModules, 'build-with-claude-code')
+export const buildWithClaudeCodeArticles = convertToArticles(buildWithClaudeCodeModules, 'build-with-claude-code')
 export const agentSkillsArticles = convertToArticles(agentSkillsModules, 'agent-skills')
 
 // 导出完整的知识库数据
@@ -102,7 +102,7 @@ export const knowledgeData: KnowledgeCategory[] = [
   {
     id: 'build-with-claude-code',
     name: '使用Claude Code开发',
-    articles: buildwithClaudeCodeArticles
+    articles: buildWithClaudeCodeArticles
   },
   {
     id: 'ai-development',

@@ -586,7 +586,7 @@
     - About 页面正常渲染，无样式异常
   - 依赖：无
 
-- [ ] **Task 5.5: 修复 buildwithClaudeCodeArticles 命名大小写**
+- [x] **Task 5.5: 修复 buildwithClaudeCodeArticles 命名大小写**
 
   - 文件：
     - `src/data/knowledge.ts`
