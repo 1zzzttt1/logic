@@ -76,7 +76,7 @@ CLI Agent 没有这个问题。它已经从训练数据中了解 gh。它可以�
 但真正上线的 AI 产品，大多数不是“开发者自己用工具”这种场景。
 如果你做的是 B2B SaaS（部署在云端，使用这个 Agent 的人，是你的客户）、项目管理工具、客服系统、代码审查助手，那么这个 Agent 不是在替你干活，而是在替客户公司的员工干活。它会进入客户公司的组织环境，访问客户的数据，并连接客户控制的各种服务。
 
-![图片1](/logic/images/articles/hello-1.png)
+![图1](./images/articles/hello-1.png)
 
 假设你在做一个项目管理平台里的 AI 助手。
 Acme 公司的一名员工对这个 Agent 说：“根据这个 GitHub PR 创建一个 Jira 任务，然后在 Slack 里通知团队。”
@@ -271,7 +271,7 @@ MCP 之所以花费更加昂贵，是因为它多做了很多事情：
 
 不要简单问“CLI 好还是 MCP 好”，你应该先看你的 Agent 是怎么部署、给谁用的。
 
-![图片2](/logic/images/articles/hello-2.png)
+![图2](./images/articles/hello-2.png)
 
 
 
@@ -290,7 +290,7 @@ MCP 之所以花费更加昂贵，是因为它多做了很多事情：
 2. MCP 的授权、安全和治理能力
 ```
 
-![图片3](/logic/images/articles/hello-3.png)
+![图3](./images/articles/hello-3.png)
 
 
 
