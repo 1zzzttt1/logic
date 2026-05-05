@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { watch, onUnmounted } from 'vue'
 
 const props = defineProps<{
   show: boolean
@@ -22,26 +22,64 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-// Handle scroll lock when modal opens
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleKeydown)
-  } else {
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
-    window.removeEventListener('keydown', handleKeydown)
+const lockScroll = () => {
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+  window.addEventListener('keydown', handleKeydown)
+}
+
+const unlockScroll = () => {
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+  window.removeEventListener('keydown', handleKeydown)
+}
+
+// 打开图片预览时锁定页面滚动，关闭时恢复滚动
+watch(
+  () => props.show,
+  (newVal) => {
+    if (newVal) {
+      lockScroll()
+    } else {
+      unlockScroll()
+    }
   }
+)
+
+onUnmounted(() => {
+  unlockScroll()
 })
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="show" class="image-preview-overlay" @click="handleBackdropClick">
-        <button class="preview-close-btn" type="button" aria-label="关闭预览" @click.stop="emit('close')">
-          <span class="material-symbols-outlined">close</span>
+      <div
+        v-if="show"
+        class="image-preview-overlay"
+        @click="handleBackdropClick"
+      >
+        <button
+          class="preview-close-btn"
+          type="button"
+          aria-label="关闭预览"
+          @click.stop="emit('close')"
+        >
+          <svg
+            class="preview-close-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
 
         <div class="preview-image-container" @click.stop>
@@ -76,11 +114,16 @@ watch(() => props.show, (newVal) => {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  padding: 0;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .preview-close-btn:hover {
@@ -88,8 +131,17 @@ watch(() => props.show, (newVal) => {
   transform: scale(1.05);
 }
 
-.preview-close-btn .material-symbols-outlined {
-  font-size: 28px;
+.preview-close-btn:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 3px;
+}
+
+.preview-close-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  color: currentColor;
+  flex-shrink: 0;
 }
 
 .preview-image-container {
