@@ -65,19 +65,35 @@ const sidebarGroups = computed<SidebarGroup[]>(() => {
       data-lenis-prevent
       @wheel="stopWheelPropagationWhenScrollable"
     >
-      <div v-for="(group, index) in sidebarGroups" :key="group.id" class="nav-group">
+      <div
+        v-for="(group, index) in sidebarGroups"
+        :key="group.id"
+        class="nav-group"
+      >
         <button
           class="group-header"
           type="button"
+          :aria-expanded="group.expanded"
           @click="emit('toggle-category', index)"
         >
           <span class="group-title">{{ group.title }}</span>
-          <span
-            class="material-symbols-outlined group-toggle-icon"
+
+          <svg
+            class="group-toggle-icon"
             :class="{ expanded: group.expanded }"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
           >
-            expand_more
-          </span>
+            <path
+              d="M6 9l6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
 
         <div class="group-items" :class="{ collapsed: !group.expanded }">
@@ -98,19 +114,35 @@ const sidebarGroups = computed<SidebarGroup[]>(() => {
 
   <!-- Mobile mode: just the nav content -->
   <nav v-else class="sidebar-nav">
-    <div v-for="(group, index) in sidebarGroups" :key="group.id" class="nav-group">
+    <div
+      v-for="(group, index) in sidebarGroups"
+      :key="group.id"
+      class="nav-group"
+    >
       <button
         class="group-header"
         type="button"
+        :aria-expanded="group.expanded"
         @click="emit('toggle-category', index)"
       >
         <span class="group-title">{{ group.title }}</span>
-        <span
-          class="material-symbols-outlined group-toggle-icon"
+
+        <svg
+          class="group-toggle-icon"
           :class="{ expanded: group.expanded }"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
         >
-          expand_more
-        </span>
+          <path
+            d="M6 9l6 6 6-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
       </button>
 
       <div class="group-items" :class="{ collapsed: !group.expanded }">
@@ -295,8 +327,14 @@ html.dark .group-title {
   color: #9eacc0;
 }
 
+/* 
+  本地 SVG 图标：
+  不依赖 Google Material Symbols / iconfont / CDN，
+  所以国内环境可以稳定显示。
+*/
 .group-toggle-icon {
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
   color: #868076;
   transition: transform 0.2s ease;
   flex-shrink: 0;
@@ -314,7 +352,9 @@ html.dark .group-toggle-icon {
 
 .group-items {
   overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.2s ease;
+  transition:
+    max-height 0.3s ease,
+    opacity 0.2s ease;
   max-height: 1200px;
   opacity: 1;
 }

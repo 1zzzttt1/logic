@@ -44,7 +44,10 @@ const {
   updateScrollProgress,
   scrollToTop,
   clearScrollUiTimers,
-} = useScrollProgress({ showAt: props.showAt, idleDelay: props.idleDelay })
+} = useScrollProgress({
+  showAt: props.showAt,
+  idleDelay: props.idleDelay,
+})
 
 const cssVars = computed(() => ({
   '--back-top-right': props.right,
@@ -65,6 +68,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScrollProgress)
+  clearScrollUiTimers()
 })
 </script>
 
@@ -83,6 +87,7 @@ onUnmounted(() => {
           class="back-to-top-ring__svg"
           viewBox="0 0 56 56"
           aria-hidden="true"
+          focusable="false"
         >
           <circle
             class="back-to-top-ring__track"
@@ -109,9 +114,24 @@ onUnmounted(() => {
 
         <span
           v-else
-          class="material-symbols-outlined back-to-top-ring__icon"
+          class="back-to-top-ring__icon"
+          aria-hidden="true"
         >
-          arrow_upward
+          <svg
+            class="back-to-top-ring__local-icon"
+            viewBox="0 0 24 24"
+            focusable="false"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 19V5m0 0-7 7m7-7 7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </span>
       </span>
     </button>
@@ -191,7 +211,15 @@ onUnmounted(() => {
 }
 
 .back-to-top-ring__icon {
-  font-size: 20px;
+  width: 100%;
+  height: 100%;
+}
+
+.back-to-top-ring__local-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: currentColor;
 }
 
 :global(html.dark) .back-to-top-ring__track {
@@ -219,8 +247,9 @@ onUnmounted(() => {
     font-size: 12px;
   }
 
-  .back-to-top-ring__icon {
-    font-size: 18px;
+  .back-to-top-ring__local-icon {
+    width: 18px;
+    height: 18px;
   }
 }
 

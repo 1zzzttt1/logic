@@ -91,14 +91,29 @@ onBeforeUnmount(() => {
         走进智能时代。
       </p>
 
-      <button
-        class="cta-btn"
-        :disabled="isTransitioning"
-        @click="goToKnowledge"
-      >
-        <span>学 习 AI</span>
-        <span class="material-symbols-outlined">arrow_forward</span>
-      </button>
+ <button
+  class="cta-btn"
+  :disabled="isTransitioning"
+  @click="goToKnowledge"
+>
+  <span>学 习 AI</span>
+
+  <span class="material-symbols-outlined cta-arrow" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      focusable="false"
+    >
+      <path
+        d="M5 12H19M13 6L19 12L13 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </span>
+</button>
     </div>
   </main>
 </template>
@@ -234,10 +249,19 @@ html.dark .cta-btn:hover {
   transform: translateY(0);
 }
 
-.material-symbols-outlined {
-  font-size: 24px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+.material-symbols-outlined.cta-arrow {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-symbols-outlined.cta-arrow svg {
+  width: 24px;
+  height: 24px;
+  display: block;
 }
 
 @media (min-width: 768px) {

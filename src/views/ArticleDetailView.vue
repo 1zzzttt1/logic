@@ -10,7 +10,7 @@ const router = useRouter()
 
 const article = computed(() => {
   const id = route.params.id as string
-  return mdArticles.find(a => a.id === id)
+  return mdArticles.find((a) => a.id === id)
 })
 
 const renderedContent = computed(() => {
@@ -45,18 +45,35 @@ onMounted(() => {
 <template>
   <div class="article-detail-page">
     <div v-if="article" class="article-container">
-      <nav class="breadcrumb">
-        <router-link to="/articles" class="back-link">
-          <span class="material-symbols-outlined">arrow_back</span>
-          <span>返回列表</span>
-        </router-link>
+      <nav class="breadcrumb" aria-label="文章导航">
+        <button class="back-link" type="button" @click="goBack">
+          <svg
+            class="local-icon back-link__icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M19 12H5m0 0 7-7M5 12l7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="back-link__text">返回列表</span>
+        </button>
       </nav>
 
       <header class="article-header">
         <div class="article-meta">
           <time class="article-date">{{ formatDate(article.publishedAt) }}</time>
+
           <div class="article-tags">
-            <span v-for="tag in article.tags" :key="tag" class="tag">{{ tag }}</span>
+            <span v-for="tag in article.tags" :key="tag" class="tag">
+              {{ tag }}
+            </span>
           </div>
         </div>
 
@@ -65,12 +82,51 @@ onMounted(() => {
       </header>
 
       <article class="article-content" v-html="renderedContent"></article>
+
+      <footer v-if="article.sourceUrl" class="article-footer">
+        <button class="source-link-btn" type="button" @click="openSource">
+          <span class="source-link-btn__text">查看原文</span>
+          <svg
+            class="local-icon source-link-btn__icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M7 17L17 7m0 0H9m8 0v8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </footer>
     </div>
 
     <div v-else class="not-found">
       <h1>文章未找到</h1>
       <p>抱歉，您访问的文章不存在。</p>
-      <router-link to="/articles" class="back-btn">返回文章列表</router-link>
+
+      <button class="back-btn" type="button" @click="goBack">
+        <svg
+          class="local-icon back-btn__icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M19 12H5m0 0 7-7M5 12l7 7"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="back-btn__text">返回文章列表</span>
+      </button>
     </div>
   </div>
 
@@ -92,34 +148,111 @@ onMounted(() => {
   min-width: 0;
 }
 
+.local-icon {
+  width: 1.125em;
+  height: 1.125em;
+  display: inline-block;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* 顶部返回区域 */
 .breadcrumb {
   margin-bottom: 2rem;
 }
 
+/* 返回列表按钮 */
 .back-link {
+  appearance: none;
+  border: 1px solid rgba(95, 110, 138, 0.2);
+  background: rgba(255, 255, 255, 0.72);
+  color: #5f6e8a;
+  text-decoration: none;
+
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #7A766F;
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: color 0.2s ease;
-}
+  justify-content: center;
 
-html.dark .back-link {
-  color: #a6afbf;
+  gap: 0.4rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  box-sizing: border-box;
+
+  font-family: 'Work Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+
+  text-align: center;
+  vertical-align: middle;
+
+  cursor: pointer;
+  box-shadow:
+    0 8px 22px rgba(31, 31, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .back-link:hover {
-  color: #5F6E8A;
+  color: #ffffff;
+  background: #5f6e8a;
+  border-color: #5f6e8a;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(95, 110, 138, 0.22);
+}
+
+.back-link:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 14px rgba(95, 110, 138, 0.16);
+}
+
+.back-link:focus-visible {
+  outline: 3px solid rgba(95, 110, 138, 0.28);
+  outline-offset: 3px;
+}
+
+.back-link__icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.back-link__text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  line-height: 1.5;
+  margin-top: 0.1rem;
+}
+
+.back-link:hover .back-link__icon {
+  transform: translateX(-2px);
+}
+
+html.dark .back-link {
+  color: #d7e2f1;
+  background: rgba(27, 39, 57, 0.72);
+  border-color: rgba(166, 185, 212, 0.18);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 html.dark .back-link:hover {
-  color: #f4f6fa;
-}
-
-.back-link .material-symbols-outlined {
-  font-size: 18px;
+  color: #142033;
+  background: #d7e2f1;
+  border-color: #d7e2f1;
+  box-shadow: 0 10px 24px rgba(166, 185, 212, 0.16);
 }
 
 .article-header {
@@ -143,7 +276,7 @@ html.dark .article-header {
 .article-date {
   font-family: 'Work Sans', sans-serif;
   font-size: 0.875rem;
-  color: #7A766F;
+  color: #7a766f;
 }
 
 html.dark .article-date {
@@ -161,7 +294,7 @@ html.dark .article-date {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
   background: rgba(95, 110, 138, 0.1);
-  color: #5F6E8A;
+  color: #5f6e8a;
   border-radius: 9999px;
 }
 
@@ -174,7 +307,7 @@ html.dark .tag {
   font-family: 'Noto Serif SC', serif;
   font-size: 2rem;
   font-weight: 900;
-  color: #1F1F1C;
+  color: #1f1f1c;
   line-height: 1.3;
   margin-bottom: 1rem;
   word-break: break-word;
@@ -199,7 +332,7 @@ html.dark .article-summary {
   width: 100%;
   min-width: 0;
   font-family: 'Work Sans', sans-serif;
-  color: #1F1F1C;
+  color: #1f1f1c;
   line-height: 1.8;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -267,7 +400,7 @@ html.dark .article-content :deep(h3) {
   max-width: 100%;
   overflow: hidden;
   background: rgba(95, 110, 138, 0.08);
-  border-left: 4px solid #5F6E8A;
+  border-left: 4px solid #5f6e8a;
   padding: 1.25rem;
   margin: 1.5rem 0;
   border-radius: 0 0.5rem 0.5rem 0;
@@ -280,7 +413,7 @@ html.dark .article-content :deep(blockquote) {
 .article-content :deep(blockquote p) {
   margin: 0;
   font-style: italic;
-  color: #605E5A;
+  color: #605e5a;
 }
 
 html.dark .article-content :deep(blockquote p) {
@@ -380,7 +513,7 @@ html.dark .article-content :deep(td) {
 
 /* 链接 */
 .article-content :deep(a) {
-  color: #5F6E8A;
+  color: #5f6e8a;
   text-decoration: underline;
   text-underline-offset: 0.14em;
   word-break: break-word;
@@ -401,18 +534,34 @@ html.dark .article-footer {
 }
 
 .source-link-btn {
+  appearance: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  height: 2.75rem;
+  padding: 0 1.5rem;
   background: #111111;
   color: #ffffff;
   border: none;
   border-radius: 0.5rem;
+  font-family: 'Work Sans', sans-serif;
   font-size: 0.9375rem;
   font-weight: 500;
+  line-height: 1;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.source-link-btn__text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  line-height: 1;
 }
 
 html.dark .source-link-btn {
@@ -425,12 +574,19 @@ html.dark .source-link-btn {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
+.source-link-btn:focus-visible {
+  outline: 3px solid rgba(95, 110, 138, 0.28);
+  outline-offset: 3px;
+}
+
 html.dark .source-link-btn:hover {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-.source-link-btn .material-symbols-outlined {
-  font-size: 18px;
+.source-link-btn__icon {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .not-found {
@@ -441,7 +597,7 @@ html.dark .source-link-btn:hover {
 .not-found h1 {
   font-family: 'Noto Serif SC', serif;
   font-size: 2rem;
-  color: #1F1F1C;
+  color: #1f1f1c;
   margin-bottom: 1rem;
 }
 
@@ -450,25 +606,56 @@ html.dark .not-found h1 {
 }
 
 .not-found p {
-  color: #7A766F;
+  color: #7a766f;
   margin-bottom: 2rem;
 }
 
 .back-btn {
+  appearance: none;
+  border: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #5F6E8A;
+  height: 2.75rem;
+  padding: 0 1.5rem;
+  background: #5f6e8a;
   color: #ffffff;
   text-decoration: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  border-radius: 999px;
+  font-family: 'Work Sans', sans-serif;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .back-btn:hover {
   background: #475671;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(95, 110, 138, 0.22);
+}
+
+.back-btn:focus-visible {
+  outline: 3px solid rgba(95, 110, 138, 0.28);
+  outline-offset: 3px;
+}
+
+.back-btn__icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.back-btn__text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  line-height: 1;
 }
 
 @media (min-width: 768px) {
@@ -491,6 +678,13 @@ html.dark .not-found h1 {
   .article-header {
     margin-bottom: 2.25rem;
     padding-bottom: 1.5rem;
+  }
+
+  .back-link {
+    height: 2.375rem;
+    min-height: 2.375rem;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
   }
 
   .article-title {

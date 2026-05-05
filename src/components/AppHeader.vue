@@ -515,9 +515,46 @@ onUnmounted(() => {
           :aria-label="isDark ? '切换亮色模式' : '切换暗色模式'"
           :title="isDark ? '切换亮色模式' : '切换暗色模式'"
         >
-          <span class="material-symbols-outlined theme-icon">
-            {{ isDark ? 'dark_mode' : 'light_mode' }}
-          </span>
+<span class="theme-icon" aria-hidden="true">
+    <svg
+      v-if="isDark"
+      class="theme-icon-svg"
+      viewBox="0 0 24 24"
+      focusable="false"
+    >
+      <path
+        d="M20.4 15.15A8.65 8.65 0 1 1 8.85 3.6A7.15 7.15 0 0 0 20.4 15.15Z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.1"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+
+  <svg
+    v-else
+    class="theme-icon-svg"
+    viewBox="0 0 24 24"
+    focusable="false"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="4"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    />
+    <path
+      d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+  </svg>
+</span>
         </button>
 
         <button
@@ -713,13 +750,24 @@ onUnmounted(() => {
 }
 
 .theme-icon {
-  font-size: 20px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
   transition:
     transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.3s ease,
     color 0.3s ease;
   will-change: transform;
+}
+
+.theme-icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .theme-toggle.dark-mode .theme-icon {
