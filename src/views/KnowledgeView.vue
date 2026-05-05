@@ -43,6 +43,7 @@ const {
 
 const updateResponsiveState = () => {
   if (typeof window === 'undefined') return
+
   isDesktopSidebarVisible.value = window.innerWidth >= DESKTOP_BREAKPOINT
   isDesktopTocVisible.value = window.innerWidth >= TOC_BREAKPOINT
 }
@@ -141,14 +142,17 @@ let observer: IntersectionObserver | null = null
 
 function flattenToc(toc: TocItem[]): TocItem[] {
   const result: TocItem[] = []
+
   const walk = (items: TocItem[]) => {
     for (const item of items) {
       result.push(item)
+
       if (item.children.length > 0) {
         walk(item.children)
       }
     }
   }
+
   walk(toc)
   return result
 }
@@ -159,13 +163,13 @@ const setupObserver = () => {
   if (selectedArticle.value?.content) {
     const flatToc = generateToc(selectedArticle.value.content)
     tocItems.value = buildNestedToc(flatToc)
-
   } else {
     tocItems.value = []
   }
 
   const flatItems = flattenToc(tocItems.value)
   const ids = flatItems.map((item) => item.id)
+
   if (!ids.length) return
 
   observer = new IntersectionObserver(
@@ -208,6 +212,7 @@ const currentCategoryArticles = computed(() => {
 const prevArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || !articles.length) return null
+
   const prevArticles = articles.filter((a) => a.order < selectedArticle.value!.order)
   return prevArticles.length ? prevArticles[prevArticles.length - 1] : null
 })
@@ -215,6 +220,7 @@ const prevArticle = computed(() => {
 const nextArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || !articles.length) return null
+
   const nextArticles = articles.filter((a) => a.order > selectedArticle.value!.order)
   return nextArticles.length ? nextArticles[0] : null
 })
@@ -244,6 +250,7 @@ const handleResize = () => {
 const handleImageClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement
   const img = target.closest('.markdown-image') as HTMLElement
+
   if (img && img.dataset.previewSrc) {
     previewImageSrc.value = img.dataset.previewSrc
     showImagePreview.value = true
@@ -255,32 +262,13 @@ const closeImagePreview = () => {
   previewImageSrc.value = ''
 }
 
-const stopWheelPropagationWhenScrollable = (e: WheelEvent) => {
-  const currentTarget = e.currentTarget as HTMLElement | null
-  if (!currentTarget) return
-
-  const { scrollTop, scrollHeight, clientHeight } = currentTarget
-  const delta = e.deltaY
-  const canScroll = scrollHeight > clientHeight + 1
-
-  if (!canScroll) return
-
-  const isScrollingUp = delta < 0
-  const isScrollingDown = delta > 0
-  const atTop = scrollTop <= 0
-  const atBottom = scrollTop + clientHeight >= scrollHeight - 1
-
-  if ((isScrollingUp && !atTop) || (isScrollingDown && !atBottom)) {
-    e.stopPropagation()
-  }
-}
-
 onMounted(() => {
   updateResponsiveState()
 
   window.addEventListener('resize', handleResize)
 
   const firstCategory = knowledgeData[0]
+
   if (firstCategory?.articles?.[0]) {
     selectedCategory.value = firstCategory.id
     selectedArticle.value = firstCategory.articles[0]
@@ -298,6 +286,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   observer?.disconnect()
+  clearScrollUiTimers()
 })
 
 watch(selectedArticle, () => {
@@ -334,7 +323,6 @@ watch(selectedArticle, () => {
       />
     </Teleport>
 
-    <!-- Task 4.6a+4.6b: 使用 KnowledgeMobilePanels 管理移动端侧边栏和 TOC 面板 -->
     <KnowledgeMobilePanels
       :show-sidebar="showMobileSidebar"
       :show-toc="showMobileToc"
@@ -348,10 +336,11 @@ watch(selectedArticle, () => {
           :expanded-category-ids="expandedCategoryIds"
           :selected-category="selectedCategory"
           :selected-article="selectedArticle"
-          @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false; }"
+          @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false }"
           @toggle-category="toggleGroup"
         />
       </template>
+
       <template #toc>
         <KnowledgeToc
           mode="mobile"
@@ -369,18 +358,45 @@ watch(selectedArticle, () => {
             type="button"
             @click="showMobileToc = false; showMobileSidebar = true"
           >
-            <span class="material-symbols-outlined">menu</span>
+            <svg
+              class="local-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M4 6.5h16M4 12h16M4 17.5h16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
             <span>教程目录</span>
           </button>
 
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--right"
             type="button"
-            @click="showMobileSidebar = false; showMobileToc = true"
             :disabled="tocItems.length === 0"
+            @click="showMobileSidebar = false; showMobileToc = true"
           >
             <span>页面导航</span>
-            <span class="material-symbols-outlined">chevron_right</span>
+            <svg
+              class="local-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M8.5 5l7 7-7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </Teleport>
@@ -388,7 +404,21 @@ watch(selectedArticle, () => {
       <header class="article-header">
         <nav class="breadcrumb">
           <span>知识库</span>
-          <span>/</span>
+          <svg
+            class="breadcrumb-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M9 5l7 7-7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
           <span>{{ knowledgeData.find((c) => c.id === selectedCategory)?.name || '' }}</span>
         </nav>
 
@@ -415,21 +445,59 @@ watch(selectedArticle, () => {
       </article>
 
       <footer class="article-footer">
-        <a v-if="prevArticle" href="#" class="nav-prev" @click.prevent="goToPrevArticle">
+        <a
+          v-if="prevArticle"
+          href="#"
+          class="nav-prev"
+          @click.prevent="goToPrevArticle"
+        >
           <span class="nav-label">上一章</span>
           <div class="nav-link-text">
-            <span class="material-symbols-outlined">arrow_back</span>
+            <svg
+              class="local-icon nav-link-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M19 12H5m0 0 7-7M5 12l7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <span>{{ prevArticle.title }}</span>
           </div>
         </a>
 
         <div v-else></div>
 
-        <a v-if="nextArticle" href="#" class="nav-next" @click.prevent="goToNextArticle">
+        <a
+          v-if="nextArticle"
+          href="#"
+          class="nav-next"
+          @click.prevent="goToNextArticle"
+        >
           <span class="nav-label">下一章</span>
           <div class="nav-link-text">
             <span>{{ nextArticle.title }}</span>
-            <span class="material-symbols-outlined">arrow_forward</span>
+            <svg
+              class="local-icon nav-link-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M5 12h14m0 0-7-7m7 7-7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </div>
         </a>
       </footer>
@@ -448,6 +516,7 @@ watch(selectedArticle, () => {
             class="back-to-top-ring__svg"
             viewBox="0 0 56 56"
             aria-hidden="true"
+            focusable="false"
           >
             <circle
               class="back-to-top-ring__track"
@@ -474,9 +543,24 @@ watch(selectedArticle, () => {
 
           <span
             v-else
-            class="material-symbols-outlined back-to-top-ring__icon"
+            class="back-to-top-ring__icon"
+            aria-hidden="true"
           >
-            arrow_upward
+            <svg
+              class="local-icon back-to-top-local-icon"
+              viewBox="0 0 24 24"
+              focusable="false"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 19V5m0 0-7 7m7-7 7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </span>
         </span>
       </button>
@@ -501,9 +585,26 @@ watch(selectedArticle, () => {
   --gutter-right: 52px;
   --surface-light: rgba(253, 252, 251, 0.72);
   --surface-dark: rgba(27, 39, 57, 0.68);
+
   min-height: 100vh;
   position: relative;
   overflow: visible;
+}
+
+.local-icon {
+  width: 1.15em;
+  height: 1.15em;
+  display: inline-block;
+  flex-shrink: 0;
+  color: currentColor;
+  vertical-align: -0.15em;
+}
+
+.breadcrumb-icon {
+  width: 13px;
+  height: 13px;
+  color: currentColor;
+  flex-shrink: 0;
 }
 
 .main-content {
@@ -686,7 +787,8 @@ html.dark .group-title {
 }
 
 .group-toggle-icon {
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
   color: #868076;
   transition: transform 0.2s ease;
   flex-shrink: 0;
@@ -702,7 +804,9 @@ html.dark .group-toggle-icon {
 
 .group-items {
   overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.2s ease;
+  transition:
+    max-height 0.3s ease,
+    opacity 0.2s ease;
   max-height: 1200px;
   opacity: 1;
 }
@@ -1002,9 +1106,9 @@ html.dark .markdown-content :deep(blockquote) {
   justify-content: flex-end;
 }
 
-.nav-link-text .material-symbols-outlined {
-  font-size: 16px;
-  flex-shrink: 0;
+.nav-link-icon {
+  width: 16px;
+  height: 16px;
 }
 
 html.dark .nav-label {
@@ -1017,136 +1121,6 @@ html.dark .nav-link-text {
 
 .mobile-top-nav {
   display: none;
-}
-
-.mobile-panel-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 18, 24, 0.26);
-  z-index: 2200;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.26s ease, visibility 0.26s ease;
-}
-
-.mobile-panel-overlay.active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.mobile-panel-drawer {
-  position: absolute;
-  top: 0;
-  width: min(86vw, 23rem);
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
-  padding: calc(88px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
-  background: rgba(253, 252, 251, 0.98);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
-  transition: transform 0.28s ease;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(95, 110, 138, 0.45) transparent;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-thumb {
-  background: rgba(95, 110, 138, 0.42);
-  border-radius: 999px;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
-  background: rgba(95, 110, 138, 0.6);
-}
-
-html.dark .mobile-panel-drawer {
-  background: rgba(27, 39, 57, 0.98);
-  scrollbar-color: rgba(166, 185, 212, 0.42) transparent;
-}
-
-html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb {
-  background: rgba(166, 185, 212, 0.38);
-}
-
-html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
-  background: rgba(166, 185, 212, 0.56);
-}
-
-.mobile-panel-drawer--left {
-  left: 0;
-  transform: translateX(-100%);
-}
-
-.mobile-panel-overlay.active .mobile-panel-drawer--left {
-  transform: translateX(0);
-}
-
-.mobile-panel-drawer--right {
-  right: 0;
-  transform: translateX(100%);
-}
-
-.mobile-panel-overlay.active .mobile-panel-drawer--right {
-  transform: translateX(0);
-}
-
-.mobile-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 22px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(214, 209, 201, 0.5);
-}
-
-html.dark .mobile-panel-header {
-  border-bottom-color: rgba(166, 185, 212, 0.14);
-}
-
-.mobile-panel-title {
-  margin: 0;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #475671;
-}
-
-html.dark .mobile-panel-title {
-  color: #d7e2f1;
-}
-
-.mobile-panel-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: #7a766f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-html.dark .mobile-panel-close {
-  color: #a6afbf;
-}
-
-.mobile-toc-nav {
-  gap: 10px;
 }
 
 .back-to-top-btn {
@@ -1221,7 +1195,13 @@ html.dark .mobile-panel-close {
 }
 
 .back-to-top-ring__icon {
-  font-size: 20px;
+  width: 100%;
+  height: 100%;
+}
+
+.back-to-top-local-icon {
+  width: 20px;
+  height: 20px;
 }
 
 html.dark .back-to-top-ring__track {
@@ -1235,142 +1215,6 @@ html.dark .back-to-top-ring__progress {
 html.dark .back-to-top-ring__label,
 html.dark .back-to-top-ring__icon {
   color: rgba(255, 255, 255, 0.9);
-}
-
-@media (max-width: 947px) {
-  .knowledge-page {
-    overflow: visible;
-  }
-
-  .main-content {
-    width: 100%;
-    overflow: visible;
-    padding-top: 5rem;
-  }
-
-  .mobile-top-nav {
-    position: sticky;
-    top: 5rem;
-    z-index: 2010;
-    display: grid;
-    width: 100%;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    margin-bottom: 28px;
-    background: rgba(247, 245, 241, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(165, 162, 156, 0.5);
-    border-bottom: 1px solid rgba(214, 209, 201, 0.5);
-  }
-
-  html.dark .mobile-top-nav {
-    background: rgba(20, 30, 45, 0.88);
-    border-top-color: rgba(166, 185, 212, 0.12);
-    border-bottom-color: rgba(166, 185, 212, 0.14);
-  }
-
-  .mobile-top-nav__btn {
-    height: 48px;
-    padding: 0 16px;
-    border: none;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #6f6a62;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .mobile-top-nav__btn--left {
-    justify-content: flex-start;
-    border-right: 1px solid rgba(214, 209, 201, 0.5);
-  }
-
-  .mobile-top-nav__btn--right {
-    justify-content: flex-end;
-  }
-
-  .mobile-top-nav__btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  html.dark .mobile-top-nav__btn {
-    color: #c0cadb;
-  }
-
-  html.dark .mobile-top-nav__btn--left {
-    border-right-color: rgba(166, 185, 212, 0.14);
-  }
-
-  .mobile-panel-drawer .sidebar-nav,
-  .mobile-panel-drawer .toc-nav {
-    flex: none;
-    height: auto;
-    min-height: auto;
-    overflow: visible;
-  }
-
-  .article-header,
-  .article-body,
-  .article-footer {
-    padding-left: 24px;
-    padding-right: 24px;
-    padding-bottom: 24px;
-  }
-
-  .article-header {
-    margin-top: 0;
-    margin-bottom: 36px;
-  }
-
-  .article-title {
-    font-size: 28px;
-    line-height: 1.22;
-    max-width: none;
-  }
-
-  .article-summary {
-    font-size: 16px;
-    line-height: 1.8;
-  }
-
-  .article-footer {
-    margin-top: 56px;
-    gap: 14px;
-  }
-
-  .nav-prev,
-  .nav-next {
-    max-width: 48%;
-  }
-
-  .back-to-top-btn {
-    right: 2rem;
-    bottom: 5rem;
-    width: 58px;
-    height: 58px;
-  }
-
-  .back-to-top-ring__label {
-    font-size: 12px;
-  }
-
-  .back-to-top-ring__icon {
-    font-size: 18px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .back-to-top-btn {
-    right: 16rem;
-    bottom: 5rem;
-    width: 58px;
-    height: 58px;
-  }
 }
 
 .empty-content {
@@ -1474,6 +1318,124 @@ html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
 }
 
 @media (max-width: 947px) {
+  .knowledge-page {
+    overflow: visible;
+  }
+
+  .main-content {
+    width: 100%;
+    overflow: visible;
+    padding-top: 5rem;
+  }
+
+  .mobile-top-nav {
+    position: sticky;
+    top: 5rem;
+    z-index: 2010;
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    margin-bottom: 28px;
+    background: rgba(247, 245, 241, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(165, 162, 156, 0.5);
+    border-bottom: 1px solid rgba(214, 209, 201, 0.5);
+  }
+
+  html.dark .mobile-top-nav {
+    background: rgba(20, 30, 45, 0.88);
+    border-top-color: rgba(166, 185, 212, 0.12);
+    border-bottom-color: rgba(166, 185, 212, 0.14);
+  }
+
+  .mobile-top-nav__btn {
+    height: 48px;
+    padding: 0 16px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6f6a62;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .mobile-top-nav__btn--left {
+    justify-content: flex-start;
+    border-right: 1px solid rgba(214, 209, 201, 0.5);
+  }
+
+  .mobile-top-nav__btn--right {
+    justify-content: flex-end;
+  }
+
+  .mobile-top-nav__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  html.dark .mobile-top-nav__btn {
+    color: #c0cadb;
+  }
+
+  html.dark .mobile-top-nav__btn--left {
+    border-right-color: rgba(166, 185, 212, 0.14);
+  }
+
+  .article-header,
+  .article-body,
+  .article-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-bottom: 24px;
+  }
+
+  .article-header {
+    margin-top: 0;
+    margin-bottom: 36px;
+  }
+
+  .article-title {
+    font-size: 28px;
+    line-height: 1.22;
+    max-width: none;
+  }
+
+  .article-summary {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .article-footer {
+    margin-top: 56px;
+    gap: 14px;
+  }
+
+  .nav-prev,
+  .nav-next {
+    max-width: 48%;
+  }
+
+  .back-to-top-btn {
+    right: 2rem;
+    bottom: 5rem;
+    width: 58px;
+    height: 58px;
+  }
+
+  .back-to-top-ring__label {
+    font-size: 12px;
+  }
+
+  .back-to-top-local-icon {
+    width: 18px;
+    height: 18px;
+  }
+
   .markdown-content :deep(.markdown-table) {
     min-width: 520px;
     font-size: 14px;
@@ -1482,6 +1444,15 @@ html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
   .markdown-content :deep(.markdown-table th),
   .markdown-content :deep(.markdown-table td) {
     padding: 12px 14px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .back-to-top-btn {
+    right: 16rem;
+    bottom: 5rem;
+    width: 58px;
+    height: 58px;
   }
 }
 </style>
