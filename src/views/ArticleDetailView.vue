@@ -1,25 +1,125 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { renderMarkdown } from '@/utils/markdown'
 import { mdArticles } from '../data/articles'
 import BackToTopButton from '@/components/BackToTopButton.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+const showImagePreview = ref(false)
+const previewImageSrc = ref('')
 
 const article = computed(() => {
   const id = route.params.id as string
   return mdArticles.find((a) => a.id === id)
 })
 
+const normalizeImageUrl = (url: string) => {
+  if (!url) return url
+
+  // 网络图片，不处理
+  if (/^(https?:)?\/\//.test(url)) {
+    return url
+  }
+
+  // base64 图片，不处理
+  if (url.startsWith('data:')) {
+    return url
+  }
+
+  const base = import.meta.env.BASE_URL || '/'
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`
+
+  // base: '/logic/' -> 'logic'
+  const baseName = normalizedBase.replace(/^\/|\/$/g, '')
+
+  // 已经是 /logic/images/...，不要重复加 /logic
+  if (baseName && url.startsWith(`/${baseName}/`)) {
+    return url
+  }
+
+  // /images/... -> /logic/images/...
+  if (url.startsWith('/')) {
+    return `${normalizedBase.replace(/\/$/, '')}${url}`
+  }
+
+  // 相对路径不处理
+  return url
+}
+
+const normalizeMarkdownImages = (html: string) => {
+  if (!html) return html
+
+  return html.replace(/<img\b([^>]*?)>/g, (imgTag: string) => {
+    const srcMatch = imgTag.match(/\ssrc=(["'])(.*?)\1/)
+
+    if (!srcMatch) {
+      return imgTag
+    }
+
+    const rawSrc = srcMatch[2] ?? ''
+
+    if (!rawSrc) {
+      return imgTag
+    }
+
+    const normalizedSrc = normalizeImageUrl(rawSrc)
+
+    let nextImgTag = imgTag.replace(
+      /\ssrc=(["'])(.*?)\1/,
+      ` src="${normalizedSrc}"`
+    )
+
+    // 添加 markdown-image class，兼容图片点击预览
+    const classMatch = nextImgTag.match(/\sclass=(["'])(.*?)\1/)
+
+    if (!classMatch) {
+      nextImgTag = nextImgTag.replace(
+        '<img',
+        '<img class="markdown-image"'
+      )
+    } else {
+      const quote = classMatch[1] ?? '"'
+      const className = classMatch[2] ?? ''
+
+      if (!className.split(/\s+/).includes('markdown-image')) {
+        nextImgTag = nextImgTag.replace(
+          /\sclass=(["'])(.*?)\1/,
+          ` class=${quote}${className} markdown-image${quote}`
+        )
+      }
+    }
+
+    // 添加 data-preview-src，给 ImagePreview 用
+    if (!/\sdata-preview-src=/.test(nextImgTag)) {
+      nextImgTag = nextImgTag.replace(
+        '<img',
+        `<img data-preview-src="${normalizedSrc}"`
+      )
+    } else {
+      nextImgTag = nextImgTag.replace(
+        /\sdata-preview-src=(["'])(.*?)\1/,
+        ` data-preview-src="${normalizedSrc}"`
+      )
+    }
+
+    return nextImgTag
+  })
+}
+
 const renderedContent = computed(() => {
   if (!article.value) return ''
-  return renderMarkdown(article.value.content)
+
+  const html = renderMarkdown(article.value.content)
+  return normalizeMarkdownImages(html)
 })
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr)
+
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -35,6 +135,21 @@ const openSource = () => {
   if (article.value?.sourceUrl) {
     window.open(article.value.sourceUrl, '_blank')
   }
+}
+
+const handleImageClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  const img = target.closest('.markdown-image') as HTMLElement | null
+
+  if (img?.dataset.previewSrc) {
+    previewImageSrc.value = img.dataset.previewSrc
+    showImagePreview.value = true
+  }
+}
+
+const closeImagePreview = () => {
+  showImagePreview.value = false
+  previewImageSrc.value = ''
 }
 
 onMounted(() => {
@@ -81,7 +196,11 @@ onMounted(() => {
         <p class="article-summary">{{ article.summary }}</p>
       </header>
 
-      <article class="article-content" v-html="renderedContent"></article>
+      <article
+        class="article-content"
+        v-html="renderedContent"
+        @click="handleImageClick"
+      ></article>
 
       <footer v-if="article.sourceUrl" class="article-footer">
         <button class="source-link-btn" type="button" @click="openSource">
@@ -131,6 +250,12 @@ onMounted(() => {
   </div>
 
   <BackToTopButton />
+
+  <ImagePreview
+    :show="showImagePreview"
+    :src="previewImageSrc"
+    @close="closeImagePreview"
+  />
 </template>
 
 <style scoped>
@@ -156,12 +281,10 @@ onMounted(() => {
   color: currentColor;
 }
 
-/* 顶部返回区域 */
 .breadcrumb {
   margin-bottom: 2rem;
 }
 
-/* 返回列表按钮 */
 .back-link {
   appearance: none;
   border: 1px solid rgba(95, 110, 138, 0.2);
@@ -420,7 +543,6 @@ html.dark .article-content :deep(blockquote p) {
   color: #a6afbf;
 }
 
-/* 行内 code */
 .article-content :deep(code:not(pre code)) {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.92em;
@@ -436,7 +558,6 @@ html.dark .article-content :deep(code:not(pre code)) {
   color: #d8e2f3;
 }
 
-/* 代码块容器 */
 .article-content :deep(pre) {
   width: 100%;
   max-width: 100%;
@@ -456,7 +577,6 @@ html.dark .article-content :deep(pre) {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* 代码块内部 code */
 .article-content :deep(pre code) {
   display: block;
   min-width: max-content;
@@ -471,7 +591,6 @@ html.dark .article-content :deep(pre) {
   border-radius: 0;
 }
 
-/* 表格 */
 .article-content :deep(table) {
   display: block;
   width: 100%;
@@ -502,8 +621,8 @@ html.dark .article-content :deep(td) {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* 图片 */
-.article-content :deep(img) {
+.article-content :deep(img),
+.article-content :deep(.markdown-image) {
   display: block;
   max-width: 100%;
   height: auto;
@@ -511,7 +630,10 @@ html.dark .article-content :deep(td) {
   border-radius: 0.75rem;
 }
 
-/* 链接 */
+.article-content :deep(.markdown-image) {
+  cursor: pointer;
+}
+
 .article-content :deep(a) {
   color: #5f6e8a;
   text-decoration: underline;
