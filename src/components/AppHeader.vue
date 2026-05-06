@@ -85,7 +85,7 @@ const getNavLinkStyle = (path: string) => {
           '0 1px 2px rgba(0, 0, 0, 0.28), 0 0 14px rgba(173, 216, 255, 0.14)',
         borderBottom: '2px solid rgba(214, 229, 247, 0.92)',
         paddingBottom: '4px',
-        fontWeight: '700',
+        fontWeight: '650',
         opacity: '1',
       }
     }
@@ -103,7 +103,7 @@ const getNavLinkStyle = (path: string) => {
       textShadow: 'none',
       borderBottom: '2px solid #7f8ca5',
       paddingBottom: '4px',
-      fontWeight: '700',
+      fontWeight: '650',
       opacity: '1',
     }
   }
@@ -516,8 +516,45 @@ onUnmounted(() => {
           :aria-label="isDark ? '切换亮色模式' : '切换暗色模式'"
           :title="isDark ? '切换亮色模式' : '切换暗色模式'"
         >
-          <span class="material-symbols-outlined theme-icon">
-            {{ isDark ? 'dark_mode' : 'light_mode' }}
+          <span class="theme-icon" aria-hidden="true">
+            <svg
+              v-if="isDark"
+              class="theme-icon-svg"
+              viewBox="0 0 24 24"
+              focusable="false"
+            >
+              <path
+                d="M20.4 15.15A8.65 8.65 0 1 1 8.85 3.6A7.15 7.15 0 0 0 20.4 15.15Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.1"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+
+            <svg
+              v-else
+              class="theme-icon-svg"
+              viewBox="0 0 24 24"
+              focusable="false"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
           </span>
         </button>
 
@@ -607,12 +644,23 @@ onUnmounted(() => {
   right: 0;
   z-index: 2010;
   padding: 1rem 3rem;
-  background: transparent;  
+  background: transparent;
   backdrop-filter: none;
 
+  --nav-font-sans:
+    'Inter', 'HarmonyOS Sans SC', 'MiSans', 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC',
+    'Helvetica Neue', Arial, sans-serif;
+  --nav-font-brand:
+    'Inter', 'HarmonyOS Sans SC', 'MiSans', 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+
+  font-family: var(--nav-font-sans);
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-
-
 
 .header-nav {
   display: flex;
@@ -623,10 +671,12 @@ onUnmounted(() => {
 }
 
 .brand-logo {
-  font-family: 'Noto Serif SC', serif;
-  font-style: italic;
-  letter-spacing: -0.03em;
-  font-size: 2.15rem;
+  font-family: var(--nav-font-brand);
+  font-style: normal;
+  letter-spacing: -0.035em;
+  font-size: 2.05rem;
+  font-weight: 720;
+  line-height: 1;
   text-decoration: none;
   transition:
     color 0.25s ease,
@@ -645,8 +695,11 @@ onUnmounted(() => {
 
 .nav-link {
   position: relative;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--nav-font-sans);
   font-size: 0.9375rem;
+  font-weight: 520;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
   text-decoration: none;
   transition:
     color 0.25s ease,
@@ -757,6 +810,17 @@ onUnmounted(() => {
   inset: 0;
   pointer-events: none;
   z-index: 11;
+
+  --nav-font-sans:
+    'Inter', 'HarmonyOS Sans SC', 'MiSans', 'PingFang SC',
+    'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC',
+    'Helvetica Neue', Arial, sans-serif;
+
+  font-family: var(--nav-font-sans);
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .nav-content.active {
@@ -838,7 +902,7 @@ onUnmounted(() => {
   width: fit-content;
   text-decoration: none;
   color: var(--menu-text-primary);
-  line-height: 1.08;
+  line-height: 1.12;
   margin-bottom: 0.7rem;
   overflow: hidden;
   text-shadow: var(--menu-line-shadow);
@@ -883,11 +947,15 @@ onUnmounted(() => {
 
 .nav-socials a {
   font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--menu-text-secondary);
 }
 
 .nav-legal a {
   font-size: 0.9rem;
+  font-weight: 450;
+  letter-spacing: 0.01em;
   color: var(--menu-text-soft);
 }
 
@@ -898,9 +966,11 @@ onUnmounted(() => {
 }
 
 .nav-primary-links a {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--nav-font-sans);
   font-size: clamp(2.2rem, 5vw, 4rem);
-  letter-spacing: -0.03em;
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   color: var(--menu-text-primary);
   margin-top: 0.2rem;
 }
@@ -912,6 +982,8 @@ onUnmounted(() => {
 
 .nav-secondary-links a {
   font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--menu-text-secondary);
 }
 
@@ -945,7 +1017,8 @@ onUnmounted(() => {
   }
 
   .brand-logo {
-    font-size: 1.9rem;
+    font-size: 1.85rem;
+    letter-spacing: -0.035em;
   }
 
   .theme-toggle,
@@ -978,6 +1051,9 @@ onUnmounted(() => {
 
   .nav-primary-links a {
     font-size: clamp(2rem, 10vw, 3rem);
+    font-weight: 650;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
   }
 
   .nav-socials a {
