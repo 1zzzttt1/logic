@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { marked } from 'marked'
 import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
 import ImagePreview from '@/components/ImagePreview.vue'
+import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
+import KnowledgeToc from '@/components/KnowledgeToc.vue'
+import KnowledgeMobilePanels from '@/components/KnowledgeMobilePanels.vue'
+import BackToTopButton from '@/components/BackToTopButton.vue'
+import { renderMarkdown, generateToc, buildNestedToc } from '@/utils/markdown'
+import type { TocItem } from '@/types'
 
 const HEADER_HEIGHT = 80
 const DESKTOP_BREAKPOINT = 948
@@ -21,73 +26,18 @@ const expandedCategoryIds = ref<string[]>([])
 const isDesktopSidebarVisible = ref(false)
 const isDesktopTocVisible = ref(false)
 
-const scrollProgress = ref(0)
-const showBackToTop = ref(false)
-const showBackToTopArrow = ref(false)
-
 const showImagePreview = ref(false)
 const previewImageSrc = ref('')
 
-let scrollIdleTimer: number | null = null
-let scrollRafId: number | null = null
-
-const progressRadius = 24
-const progressCircumference = 2 * Math.PI * progressRadius
-
-const progressDashOffset = computed(() => {
-  return progressCircumference * (1 - scrollProgress.value / 100)
-})
-
 const updateResponsiveState = () => {
   if (typeof window === 'undefined') return
+
   isDesktopSidebarVisible.value = window.innerWidth >= DESKTOP_BREAKPOINT
   isDesktopTocVisible.value = window.innerWidth >= TOC_BREAKPOINT
 }
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
-}
-
-const lockBodyScroll = () => {
-  document.body.style.overflow = 'hidden'
-  document.documentElement.style.overflow = 'hidden'
-}
-
-const unlockBodyScroll = () => {
-  document.body.style.overflow = ''
-  document.documentElement.style.overflow = ''
-}
-
-const openMobileSidebar = () => {
-  showMobileToc.value = false
-  showMobileSidebar.value = true
-  lockBodyScroll()
-}
-
-const closeMobileSidebar = () => {
-  showMobileSidebar.value = false
-  if (!showMobileToc.value) {
-    unlockBodyScroll()
-  }
-}
-
-const openMobileToc = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = true
-  lockBodyScroll()
-}
-
-const closeMobileToc = () => {
-  showMobileToc.value = false
-  if (!showMobileSidebar.value) {
-    unlockBodyScroll()
-  }
-}
-
-const closeAllMobilePanels = () => {
-  showMobileSidebar.value = false
-  showMobileToc.value = false
-  unlockBodyScroll()
 }
 
 const sidebarNav = computed(() => {
@@ -133,9 +83,12 @@ const selectArticle = (categoryId: string, articleId: string) => {
   const articles = getArticlesByCategory(categoryId)
   selectedArticle.value = articles.find((a) => a.id === articleId) || null
 
+  if (selectedArticle.value) {
+    window.location.hash = `#/knowledge#${categoryId}/${articleId}`
+  }
+
   nextTick(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
-    updateScrollProgress()
   })
 }
 
@@ -144,79 +97,6 @@ const handleNavClick = (path: string) => {
   if (match && match[1] && match[2]) {
     selectArticle(match[1], match[2])
   }
-  closeAllMobilePanels()
-}
-
-function slugifyHeading(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^\u4e00-\u9fa5a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-type TocItem = {
-  name: string
-  id: string
-  level: number
-  active: boolean
-  children: TocItem[]
-}
-
-function generateToc(content: string): TocItem[] {
-  if (!content) return []
-
-  const tokens = marked.lexer(content)
-  const toc: TocItem[] = []
-
-  const walkTokens = (items: any[]) => {
-    for (const token of items) {
-      if (token.type === 'heading' && token.depth >= 1 && token.depth <= 3) {
-        const text = String(token.text || '').trim()
-        const id = slugifyHeading(text)
-
-        if (!text || !id) continue
-
-        toc.push({
-          name: text,
-          id,
-          level: token.depth,
-          active: false,
-          children: [],
-        })
-      }
-
-      // 某些 token 可能带有嵌套 token，递归处理
-      if (Array.isArray(token.tokens)) {
-        walkTokens(token.tokens)
-      }
-    }
-  }
-
-  walkTokens(tokens)
-  return toc
-}
-
-function buildNestedToc(flatToc: TocItem[]): TocItem[] {
-  const result: TocItem[] = []
-  const stack: TocItem[] = []
-
-  for (const item of flatToc) {
-    const newItem: TocItem = { ...item, children: [] }
-
-    while (stack.length > 0 && stack[stack.length - 1]!.level >= item.level) {
-      stack.pop()
-    }
-
-    if (stack.length === 0) {
-      result.push(newItem)
-    } else {
-      stack[stack.length - 1]!.children.push(newItem)
-    }
-
-    stack.push(newItem)
-  }
-
-  return result
 }
 
 const tocItems = ref<TocItem[]>([])
@@ -241,89 +121,25 @@ const scrollToAnchor = (id: string) => {
     })
   }
 
-  closeAllMobilePanels()
-}
-
-const updateScrollProgress = () => {
-  const scrollTop = window.scrollY || window.pageYOffset || 0
-  const doc = document.documentElement
-  const scrollHeight = doc.scrollHeight
-  const clientHeight = window.innerHeight
-  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
-
-  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
-  scrollProgress.value = Math.round(progress * 100)
-
-  showBackToTop.value = scrollTop > 120
-
-  if (!showBackToTop.value) {
-    showBackToTopArrow.value = false
-  }
-}
-
-const handleScrollProgress = () => {
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-  }
-
-  scrollRafId = window.requestAnimationFrame(() => {
-    updateScrollProgress()
-
-    if (!showBackToTop.value) return
-
-    showBackToTopArrow.value = false
-
-    if (scrollIdleTimer !== null) {
-      window.clearTimeout(scrollIdleTimer)
-    }
-
-    scrollIdleTimer = window.setTimeout(() => {
-      showBackToTopArrow.value = true
-    }, 420)
-  })
-}
-
-const scrollToTop = () => {
-  const lenis = (window as any).__lenis
-
-  if (lenis) {
-    lenis.scrollTo(0, {
-      duration: 1.2,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-    })
-    return
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-const clearScrollUiTimers = () => {
-  if (scrollIdleTimer !== null) {
-    window.clearTimeout(scrollIdleTimer)
-    scrollIdleTimer = null
-  }
-
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-    scrollRafId = null
-  }
+  showMobileSidebar.value = false
+  showMobileToc.value = false
 }
 
 let observer: IntersectionObserver | null = null
 
 function flattenToc(toc: TocItem[]): TocItem[] {
   const result: TocItem[] = []
+
   const walk = (items: TocItem[]) => {
     for (const item of items) {
       result.push(item)
+
       if (item.children.length > 0) {
         walk(item.children)
       }
     }
   }
+
   walk(toc)
   return result
 }
@@ -340,6 +156,7 @@ const setupObserver = () => {
 
   const flatItems = flattenToc(tocItems.value)
   const ids = flatItems.map((item) => item.id)
+
   if (!ids.length) return
 
   observer = new IntersectionObserver(
@@ -374,97 +191,6 @@ const setupObserver = () => {
   })
 }
 
-const renderMarkdown = (content: string): string => {
-  if (!content) return ''
-
-  const BASE_PATH = '/logic/'
-
-  const renderer = new marked.Renderer()
-
-  renderer.heading = (token: any) => {
-    const text = String(token?.text ?? '')
-    const depth = Number(token?.depth ?? 1)
-    const id = slugifyHeading(text)
-    return `<h${depth} class="section-title" id="${id}">${text}</h${depth}>`
-  }
-
-  renderer.link = (token: any) => {
-    const href = String(token?.href ?? '')
-    const text = String(token?.text ?? href)
-    const isExternal = /^https?:\/\//.test(href)
-    const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
-    const icon = isExternal ? '<span class="external-link-icon">↗</span>' : ''
-    return `<a href="${href}"${target}>${text}${icon}</a>`
-  }
-
-  renderer.image = (token: any) => {
-    const href = String(token?.href ?? '')
-    const text = String(token?.text ?? '')
-    let normalizedSrc = ''
-
-    if (/^https?:\/\//.test(href) || href.startsWith('/logic/')) {
-      normalizedSrc = href
-    } else if (href.startsWith('/')) {
-      normalizedSrc = BASE_PATH + href.slice(1)
-    } else {
-      normalizedSrc = BASE_PATH + href.replace(/^\.\//, '')
-    }
-
-    return `<img src="${normalizedSrc}" alt="${text}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
-  }
-
-  renderer.codespan = (token: any) => {
-    const text = String(token?.text ?? '')
-    return `<code class="inline-code">${text}</code>`
-  }
-
-  renderer.code = (token: any) => {
-    const text = String(token?.text ?? '')
-    const lang = String(token?.lang ?? '')
-    const languageClass = lang ? ` language-${lang}` : ''
-    return `<pre class="code-block"><code class="${languageClass}">${text}</code></pre>`
-  }
-
-  renderer.table = function (token: any) {
-    const parseInline = (cell: any) => {
-      if (cell?.tokens && Array.isArray(cell.tokens)) {
-        return this.parser.parseInline(cell.tokens)
-      }
-      return String(cell?.text ?? '')
-    }
-
-    const headerHtml = Array.isArray(token?.header)
-      ? token.header.map((cell: any) => `<th>${parseInline(cell)}</th>`).join('')
-      : ''
-
-    const bodyHtml = Array.isArray(token?.rows)
-      ? token.rows
-          .map((row: any[]) => {
-            const tds = Array.isArray(row)
-              ? row.map((cell: any) => `<td>${parseInline(cell)}</td>`).join('')
-              : ''
-            return `<tr>${tds}</tr>`
-          })
-          .join('')
-      : ''
-
-    return `
-      <div class="table-wrap">
-        <table class="markdown-table">
-          <thead><tr>${headerHtml}</tr></thead>
-          <tbody>${bodyHtml}</tbody>
-        </table>
-      </div>
-    `
-  }
-
-  return marked.parse(content, {
-    gfm: true,
-    breaks: false,
-    renderer,
-  }) as string
-}
-
 const currentCategoryArticles = computed(() => {
   const category = knowledgeData.find((c) => c.id === selectedCategory.value)
   return category?.articles || []
@@ -473,6 +199,7 @@ const currentCategoryArticles = computed(() => {
 const prevArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || !articles.length) return null
+
   const prevArticles = articles.filter((a) => a.order < selectedArticle.value!.order)
   return prevArticles.length ? prevArticles[prevArticles.length - 1] : null
 })
@@ -480,6 +207,7 @@ const prevArticle = computed(() => {
 const nextArticle = computed(() => {
   const articles = currentCategoryArticles.value
   if (!selectedArticle.value || !articles.length) return null
+
   const nextArticles = articles.filter((a) => a.order > selectedArticle.value!.order)
   return nextArticles.length ? nextArticles[0] : null
 })
@@ -498,16 +226,17 @@ const goToNextArticle = () => {
 
 const handleResize = () => {
   updateResponsiveState()
-  updateScrollProgress()
 
   if (window.innerWidth >= DESKTOP_BREAKPOINT) {
-    closeAllMobilePanels()
+    showMobileSidebar.value = false
+    showMobileToc.value = false
   }
 }
 
 const handleImageClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement
   const img = target.closest('.markdown-image') as HTMLElement
+
   if (img && img.dataset.previewSrc) {
     previewImageSrc.value = img.dataset.previewSrc
     showImagePreview.value = true
@@ -519,34 +248,13 @@ const closeImagePreview = () => {
   previewImageSrc.value = ''
 }
 
-const stopWheelPropagationWhenScrollable = (e: WheelEvent) => {
-  const currentTarget = e.currentTarget as HTMLElement | null
-  if (!currentTarget) return
-
-  const { scrollTop, scrollHeight, clientHeight } = currentTarget
-  const delta = e.deltaY
-  const canScroll = scrollHeight > clientHeight + 1
-
-  if (!canScroll) return
-
-  const isScrollingUp = delta < 0
-  const isScrollingDown = delta > 0
-  const atTop = scrollTop <= 0
-  const atBottom = scrollTop + clientHeight >= scrollHeight - 1
-
-  if ((isScrollingUp && !atTop) || (isScrollingDown && !atBottom)) {
-    e.stopPropagation()
-  }
-}
-
 onMounted(() => {
   updateResponsiveState()
-  updateScrollProgress()
 
   window.addEventListener('resize', handleResize)
-  window.addEventListener('scroll', handleScrollProgress, { passive: true })
 
   const firstCategory = knowledgeData[0]
+
   if (firstCategory?.articles?.[0]) {
     selectedCategory.value = firstCategory.id
     selectedArticle.value = firstCategory.articles[0]
@@ -556,24 +264,19 @@ onMounted(() => {
   nextTick(() => {
     setTimeout(() => {
       setupObserver()
-      updateScrollProgress()
     }, 180)
   })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('scroll', handleScrollProgress)
   observer?.disconnect()
-  unlockBodyScroll()
-  clearScrollUiTimers()
 })
 
 watch(selectedArticle, () => {
   nextTick(() => {
     setTimeout(() => {
       setupObserver()
-      updateScrollProgress()
     }, 180)
   })
 })
@@ -582,226 +285,53 @@ watch(selectedArticle, () => {
 <template>
   <div class="knowledge-page" :class="{ collapsed: isSidebarCollapsed }">
     <Teleport to="body">
-      <aside
-        v-if="isDesktopSidebarVisible"
-        class="desktop-sidebar-left"
-        :class="{ collapsed: isSidebarCollapsed }"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <template v-if="!isSidebarCollapsed">
-          <div class="sidebar-header">
-            <p class="sidebar-series">知识库</p>
-            <h3 class="sidebar-title">教程目录</h3>
-          </div>
-
-          <nav
-            class="sidebar-nav"
-            data-lenis-prevent
-            @wheel="stopWheelPropagationWhenScrollable"
-          >
-            <div v-for="(group, index) in sidebarNav.groups" :key="group.id" class="nav-group">
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </template>
-      </aside>
+      <KnowledgeSidebar
+        v-if="isDesktopSidebarVisible && !isSidebarCollapsed"
+        mode="desktop"
+        :categories="knowledgeData"
+        :expanded-category-ids="expandedCategoryIds"
+        :selected-category="selectedCategory"
+        :selected-article="selectedArticle"
+        @navigate="(catId: string, artId: string) => handleNavClick(`#${catId}/${artId}`)"
+        @toggle-category="toggleGroup"
+      />
     </Teleport>
 
     <Teleport to="body">
-      <aside
+      <KnowledgeToc
         v-if="isDesktopTocVisible && tocItems.length > 0"
-        class="desktop-sidebar-right"
-        data-lenis-prevent
-        @wheel="stopWheelPropagationWhenScrollable"
-      >
-        <div class="toc-head">
-          <h4 class="toc-title">页面导航</h4>
-        </div>
-
-        <nav
-          class="toc-nav"
-          data-lenis-prevent
-          @wheel="stopWheelPropagationWhenScrollable"
-        >
-          <template v-for="item in tocItems" :key="item.id">
-            <a
-              :href="'#' + item.id"
-              class="toc-item"
-              :class="{
-                active: item.active,
-                'toc-item--h1': item.level === 1,
-                'toc-item--h2': item.level === 2,
-                'toc-item--h3': item.level === 3
-              }"
-              @click.prevent="scrollToAnchor(item.id)"
-            >
-              {{ item.name }}
-            </a>
-
-            <template v-for="child in item.children" :key="child.id">
-              <a
-                :href="'#' + child.id"
-                class="toc-item toc-item--child"
-                :class="{
-                  active: child.active,
-                  'toc-item--h2': child.level === 2,
-                  'toc-item--h3': child.level === 3
-                }"
-                @click.prevent="scrollToAnchor(child.id)"
-              >
-                {{ child.name }}
-              </a>
-
-              <template v-for="grandchild in child.children" :key="grandchild.id">
-                <a
-                  :href="'#' + grandchild.id"
-                  class="toc-item toc-item--child toc-item--grandchild"
-                  :class="{
-                    active: grandchild.active,
-                    'toc-item--h3': grandchild.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(grandchild.id)"
-                >
-                  {{ grandchild.name }}
-                </a>
-              </template>
-            </template>
-          </template>
-        </nav>
-      </aside>
+        mode="desktop"
+        :items="tocItems"
+        @navigate="scrollToAnchor"
+      />
     </Teleport>
 
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileSidebar }"
-        @click="closeMobileSidebar"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--left" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">教程目录</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileSidebar">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
+    <KnowledgeMobilePanels
+      :show-sidebar="showMobileSidebar"
+      :show-toc="showMobileToc"
+      @close-sidebar="showMobileSidebar = false"
+      @close-toc="showMobileToc = false"
+    >
+      <template #sidebar>
+        <KnowledgeSidebar
+          mode="mobile"
+          :categories="knowledgeData"
+          :expanded-category-ids="expandedCategoryIds"
+          :selected-category="selectedCategory"
+          :selected-article="selectedArticle"
+          @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false }"
+          @toggle-category="toggleGroup"
+        />
+      </template>
 
-          <nav class="sidebar-nav">
-            <div
-              v-for="(group, index) in sidebarNav.groups"
-              :key="group.id"
-              class="nav-group"
-            >
-              <button class="group-header" type="button" @click="toggleGroup(index)">
-                <span class="group-title">{{ group.title }}</span>
-                <span
-                  class="material-symbols-outlined group-toggle-icon"
-                  :class="{ expanded: group.expanded }"
-                >
-                  expand_more
-                </span>
-              </button>
-
-              <div class="group-items" :class="{ collapsed: !group.expanded }">
-                <a
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :href="item.path"
-                  class="nav-item"
-                  :class="{ active: item.active }"
-                  @click.prevent="handleNavClick(item.path)"
-                >
-                  {{ item.name }}
-                </a>
-              </div>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
-
-    <Teleport to="body">
-      <div
-        class="mobile-panel-overlay"
-        :class="{ active: showMobileToc }"
-        @click="closeMobileToc"
-      >
-        <div class="mobile-panel-drawer mobile-panel-drawer--right" @click.stop>
-          <div class="mobile-panel-header">
-            <h3 class="mobile-panel-title">页面导航</h3>
-            <button class="mobile-panel-close" type="button" @click="closeMobileToc">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <nav class="toc-nav mobile-toc-nav">
-            <template v-for="item in tocItems" :key="item.id">
-              <a
-                :href="'#' + item.id"
-                class="toc-item"
-                :class="{
-                  active: item.active,
-                  'toc-item--h1': item.level === 1,
-                  'toc-item--h2': item.level === 2,
-                  'toc-item--h3': item.level === 3
-                }"
-                @click.prevent="scrollToAnchor(item.id)"
-              >
-                {{ item.name }}
-              </a>
-              <template v-for="child in item.children" :key="child.id">
-                <a
-                  :href="'#' + child.id"
-                  class="toc-item toc-item--child"
-                  :class="{
-                    active: child.active,
-                    'toc-item--h2': child.level === 2,
-                    'toc-item--h3': child.level === 3
-                  }"
-                  @click.prevent="scrollToAnchor(child.id)"
-                >
-                  {{ child.name }}
-                </a>
-                <template v-for="grandchild in child.children" :key="grandchild.id">
-                  <a
-                    :href="'#' + grandchild.id"
-                    class="toc-item toc-item--child toc-item--grandchild"
-                    :class="{
-                      active: grandchild.active,
-                      'toc-item--h3': grandchild.level === 3
-                    }"
-                    @click.prevent="scrollToAnchor(grandchild.id)"
-                  >
-                    {{ grandchild.name }}
-                  </a>
-                </template>
-              </template>
-            </template>
-          </nav>
-        </div>
-      </div>
-    </Teleport>
+      <template #toc>
+        <KnowledgeToc
+          mode="mobile"
+          :items="tocItems"
+          @navigate="scrollToAnchor"
+        />
+      </template>
+    </KnowledgeMobilePanels>
 
     <main class="main-content">
       <Teleport to=".page-content">
@@ -809,20 +339,47 @@ watch(selectedArticle, () => {
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--left"
             type="button"
-            @click="openMobileSidebar"
+            @click="showMobileToc = false; showMobileSidebar = true"
           >
-            <span class="material-symbols-outlined">menu</span>
+            <svg
+              class="local-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M4 6.5h16M4 12h16M4 17.5h16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
             <span>教程目录</span>
           </button>
 
           <button
             class="mobile-top-nav__btn mobile-top-nav__btn--right"
             type="button"
-            @click="openMobileToc"
             :disabled="tocItems.length === 0"
+            @click="showMobileSidebar = false; showMobileToc = true"
           >
             <span>页面导航</span>
-            <span class="material-symbols-outlined">chevron_right</span>
+            <svg
+              class="local-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M8.5 5l7 7-7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </Teleport>
@@ -830,7 +387,21 @@ watch(selectedArticle, () => {
       <header class="article-header">
         <nav class="breadcrumb">
           <span>知识库</span>
-          <span>/</span>
+          <svg
+            class="breadcrumb-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M9 5l7 7-7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
           <span>{{ knowledgeData.find((c) => c.id === selectedCategory)?.name || '' }}</span>
         </nav>
 
@@ -857,72 +428,75 @@ watch(selectedArticle, () => {
       </article>
 
       <footer class="article-footer">
-        <a v-if="prevArticle" href="#" class="nav-prev" @click.prevent="goToPrevArticle">
+        <a
+          v-if="prevArticle"
+          href="#"
+          class="nav-prev"
+          @click.prevent="goToPrevArticle"
+        >
           <span class="nav-label">上一章</span>
           <div class="nav-link-text">
-            <span class="material-symbols-outlined">arrow_back</span>
+            <svg
+              class="local-icon nav-link-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M19 12H5m0 0 7-7M5 12l7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <span>{{ prevArticle.title }}</span>
           </div>
         </a>
 
         <div v-else></div>
 
-        <a v-if="nextArticle" href="#" class="nav-next" @click.prevent="goToNextArticle">
+        <a
+          v-if="nextArticle"
+          href="#"
+          class="nav-next"
+          @click.prevent="goToNextArticle"
+        >
           <span class="nav-label">下一章</span>
           <div class="nav-link-text">
             <span>{{ nextArticle.title }}</span>
-            <span class="material-symbols-outlined">arrow_forward</span>
+            <svg
+              class="local-icon nav-link-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M5 12h14m0 0-7-7m7 7-7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </div>
         </a>
       </footer>
     </main>
 
-    <Teleport to="body">
-      <button
-        v-show="showBackToTop"
-        class="back-to-top-btn back-to-top-ring"
-        type="button"
-        aria-label="返回顶部"
-        @click="scrollToTop"
-      >
-        <span class="back-to-top-ring__inner">
-          <svg
-            class="back-to-top-ring__svg"
-            viewBox="0 0 56 56"
-            aria-hidden="true"
-          >
-            <circle
-              class="back-to-top-ring__track"
-              cx="28"
-              cy="28"
-              :r="progressRadius"
-            />
-            <circle
-              class="back-to-top-ring__progress"
-              cx="28"
-              cy="28"
-              :r="progressRadius"
-              :stroke-dasharray="progressCircumference"
-              :stroke-dashoffset="progressDashOffset"
-            />
-          </svg>
-
-          <span
-            v-if="!showBackToTopArrow"
-            class="back-to-top-ring__label"
-          >
-            {{ scrollProgress }}%
-          </span>
-
-          <span
-            v-else
-            class="material-symbols-outlined back-to-top-ring__icon"
-          >
-            arrow_upward
-          </span>
-        </span>
-      </button>
-    </Teleport>
+    <BackToTopButton
+      :size="60"
+      :mobile-size="54"
+      :desktop-wide-size="58"
+      right="2rem"
+      bottom="4.5rem"
+      mobile-right="1.4rem"
+      mobile-bottom="5rem"
+      desktop-wide-right="16rem"
+      desktop-wide-bottom="5rem"
+    />
 
     <ImagePreview
       :show="showImagePreview"
@@ -938,14 +512,87 @@ watch(selectedArticle, () => {
   --left-width: 244px;
   --left-collapsed-width: 56px;
   --right-width: 232px;
-  --content-max: 860px;
-  --gutter-left: 44px;
+  --content-max: 800px;
+  --gutter-left: 46px;
   --gutter-right: 52px;
-  --surface-light: rgba(253, 252, 251, 0.72);
-  --surface-dark: rgba(27, 39, 57, 0.68);
+
+  --font-sans:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans CJK SC",
+    "Source Han Sans SC",
+    Arial,
+    sans-serif;
+
+  --font-serif:
+    "Songti SC",
+    "STSong",
+    "Noto Serif CJK SC",
+    "Source Han Serif SC",
+    "SimSun",
+    serif;
+
+  --font-mono:
+    "SFMono-Regular",
+    "Cascadia Code",
+    "Consolas",
+    "Liberation Mono",
+    "Menlo",
+    monospace;
+
+  --text-main: #25282e;
+  --text-soft: #626873;
+  --text-muted: #8a909a;
+  --text-heading: #22252b;
+  --text-accent: #4d5f7d;
+
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-strong: rgba(255, 255, 255, 0.9);
+  --surface-soft: rgba(246, 247, 249, 0.72);
+  --border-soft: rgba(92, 103, 122, 0.13);
+  --shadow-soft: 0 14px 36px rgba(30, 39, 54, 0.055);
+
   min-height: 100vh;
   position: relative;
   overflow: visible;
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.dark .knowledge-page {
+  --text-main: #d8deea;
+  --text-soft: #aeb8c8;
+  --text-muted: #8794a8;
+  --text-heading: #f2f5fb;
+  --text-accent: #c6d6ef;
+
+  --surface: rgba(22, 32, 48, 0.66);
+  --surface-strong: rgba(26, 38, 57, 0.88);
+  --surface-soft: rgba(30, 45, 68, 0.54);
+  --border-soft: rgba(174, 190, 216, 0.14);
+  --shadow-soft: none;
+}
+
+.local-icon {
+  width: 1.12em;
+  height: 1.12em;
+  display: inline-block;
+  flex-shrink: 0;
+  color: currentColor;
+  vertical-align: -0.14em;
+}
+
+.breadcrumb-icon {
+  width: 13px;
+  height: 13px;
+  color: currentColor;
+  flex-shrink: 0;
 }
 
 .main-content {
@@ -962,7 +609,7 @@ watch(selectedArticle, () => {
     margin-left: calc(var(--left-width) + var(--gutter-left));
     margin-right: 40px;
     transition: margin-left 0.28s ease;
-    padding-top: 6rem;
+    padding-top: 5.4rem;
   }
 
   .knowledge-page.collapsed .main-content {
@@ -982,7 +629,9 @@ watch(selectedArticle, () => {
 }
 
 .article-header {
-  margin-bottom: 52px;
+  margin-bottom: 34px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .breadcrumb {
@@ -990,172 +639,36 @@ watch(selectedArticle, () => {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
-  color: #7f7a72;
-  margin-bottom: 18px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-html.dark .breadcrumb {
-  color: #9aa4b5;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
 }
 
 .article-title {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 40px;
-  line-height: 1.16;
-  font-weight: 900;
-  color: #1f1f1c;
-  margin: 0 0 18px;
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.22;
+  font-weight: 800;
+  color: var(--text-heading);
+  margin: 0 0 14px;
   max-width: 13em;
-}
-
-html.dark .article-title {
-  color: #f4f6fa;
-}
-
-@media (min-width: 948px) {
-  .article-title {
-    font-size: 52px;
-  }
+  letter-spacing: -0.015em;
 }
 
 .article-summary {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 18px;
-  line-height: 1.8;
-  color: #68645d;
-  max-width: 42rem;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.78;
+  color: var(--text-soft);
+  max-width: 43rem;
   margin: 0;
-}
-
-html.dark .article-summary {
-  color: #afbacb;
 }
 
 .article-body {
-  color: #1f1f1c;
-}
-
-html.dark .article-body {
-  color: #e0e4ea;
-}
-
-.desktop-sidebar-left,
-.desktop-sidebar-right {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar,
-.desktop-sidebar-right::-webkit-scrollbar {
-  width: 4px;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-track,
-.desktop-sidebar-right::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.desktop-sidebar-left::-webkit-scrollbar-thumb,
-.desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
-}
-
-html.dark .desktop-sidebar-left,
-html.dark .desktop-sidebar-right {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-html.dark .desktop-sidebar-left::-webkit-scrollbar-thumb,
-html.dark .desktop-sidebar-right::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.desktop-sidebar-left {
-  position: fixed;
-  top: 5rem;
-  left: 0;
-  bottom: 0;
-  width: var(--left-width);
-  max-width: 15.5rem;
-  border-right: 1px solid #d9dadb;
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 1200;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.desktop-sidebar-left.collapsed {
-  width: var(--left-collapsed-width);
-  max-width: var(--left-collapsed-width);
-  padding: 12px 8px;
-}
-
-html.dark .desktop-sidebar-left {
-  background: var(--surface-dark);
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
-.desktop-sidebar-right {
-  position: fixed;
-  right: 0;
-  top: 5rem;
-  bottom: 0;
-  width: var(--right-width);
-  max-width: 14rem;
-  border-left: 1px solid rgba(186, 184, 184, 0.42);
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  z-index: 10;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-html.dark .desktop-sidebar-right {
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
-.sidebar-header {
-  flex-shrink: 0;
-  margin-bottom: 22px;
-  padding: 0 8px;
-}
-
-.sidebar-series {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8a8378;
-  margin: 0 0 6px;
-}
-
-.sidebar-title {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #475671;
-  margin: 0;
-}
-
-html.dark .sidebar-series {
-  color: #92a0b3;
-}
-
-html.dark .sidebar-title {
-  color: #c3d0e3;
+  color: var(--text-main);
 }
 
 .sidebar-nav,
@@ -1183,27 +696,27 @@ html.dark .sidebar-title {
 .sidebar-nav::-webkit-scrollbar-thumb,
 .toc-nav::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
+  border-radius: 999px;
 }
 
 html.dark .sidebar-nav,
 html.dark .toc-nav {
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
 
 html.dark .sidebar-nav::-webkit-scrollbar-thumb,
 html.dark .toc-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .nav-group {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .group-header {
@@ -1214,37 +727,36 @@ html.dark .toc-nav::-webkit-scrollbar-thumb {
   gap: 10px;
   padding: 8px 10px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
   text-align: left;
 }
 
 .group-header:hover {
-  background: rgba(95, 110, 138, 0.06);
+  background: rgba(95, 110, 138, 0.07);
 }
 
 html.dark .group-header:hover {
-  background: rgba(95, 110, 138, 0.14);
+  background: rgba(166, 185, 212, 0.11);
 }
 
 .group-title {
-  font-size: 11px;
-  line-height: 1.35;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.45;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #7a746a;
-}
-
-html.dark .group-title {
-  color: #9eacc0;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
 }
 
 .group-toggle-icon {
-  font-size: 18px;
-  color: #868076;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -1253,13 +765,11 @@ html.dark .group-title {
   transform: rotate(180deg);
 }
 
-html.dark .group-toggle-icon {
-  color: #9eacc0;
-}
-
 .group-items {
   overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.2s ease;
+  transition:
+    max-height 0.3s ease,
+    opacity 0.2s ease;
   max-height: 1200px;
   opacity: 1;
 }
@@ -1271,12 +781,12 @@ html.dark .group-toggle-icon {
 
 .nav-item {
   display: block;
-  padding: 9px 10px 9px 14px;
-  border-radius: 0 10px 10px 0;
-  font-family: 'Work Sans', sans-serif;
+  padding: 8px 10px 8px 14px;
+  border-radius: 0 12px 12px 0;
+  font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.55;
-  color: #736d64;
+  line-height: 1.58;
+  color: var(--text-soft);
   text-decoration: none;
   word-break: break-word;
   transition:
@@ -1286,65 +796,41 @@ html.dark .group-toggle-icon {
 }
 
 .nav-item:hover {
-  background: rgba(244, 241, 235, 0.9);
+  background: rgba(95, 110, 138, 0.08);
   transform: translateX(3px);
 }
 
 .nav-item.active {
-  color: #465774;
-  font-weight: 600;
-  background: rgba(244, 241, 235, 0.95);
-  border-left: 2px solid #5f6e8a;
+  color: var(--text-accent);
+  font-weight: 700;
+  background: rgba(95, 110, 138, 0.1);
+  border-left: 2px solid var(--text-accent);
   padding-left: 12px;
 }
 
-html.dark .nav-item {
-  color: #afbacb;
-}
-
 html.dark .nav-item:hover {
-  background: rgba(95, 110, 138, 0.14);
+  background: rgba(166, 185, 212, 0.12);
 }
 
 html.dark .nav-item.active {
-  color: #d7e2f1;
-  background: rgba(95, 110, 138, 0.18);
-  border-left-color: #a6b9d4;
-}
-
-.toc-head {
-  flex-shrink: 0;
-  margin-bottom: 14px;
-  padding-left: 2px;
-}
-
-.toc-title {
-  margin: 0;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #4a5a76;
-}
-
-html.dark .toc-title {
-  color: #c2d0e4;
+  background: rgba(166, 185, 212, 0.16);
 }
 
 .toc-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .toc-item {
   position: relative;
   display: block;
-  padding: 8px 12px 8px 14px;
+  padding: 7px 12px 7px 14px;
   border-radius: 10px;
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.55;
-  color: #7c776e;
+  color: var(--text-soft);
   text-decoration: none;
   word-break: break-word;
   transition:
@@ -1354,14 +840,14 @@ html.dark .toc-title {
 }
 
 .toc-item:hover {
-  background: rgba(244, 241, 235, 0.72);
+  background: rgba(95, 110, 138, 0.08);
   transform: translateX(3px);
 }
 
 .toc-item.active {
-  color: #465774;
-  font-weight: 600;
-  background: rgba(244, 241, 235, 0.78);
+  color: var(--text-accent);
+  font-weight: 700;
+  background: rgba(95, 110, 138, 0.1);
 }
 
 .toc-item.active::before {
@@ -1370,9 +856,9 @@ html.dark .toc-title {
   left: 0;
   top: 50%;
   width: 3px;
-  height: 14px;
+  height: 15px;
   transform: translateY(-50%);
-  background: #5f6e8a;
+  background: var(--text-accent);
   border-radius: 999px;
 }
 
@@ -1393,159 +879,351 @@ html.dark .toc-title {
   padding-left: 36px;
   font-weight: 400;
   font-size: 12px;
-}
-
-html.dark .toc-item--h2,
-html.dark .toc-item--child {
-  color: #a9b6c8;
-}
-
-html.dark .toc-item--h3,
-html.dark .toc-item--grandchild {
-  color: #8a96a8;
-}
-
-html.dark .toc-item {
-  color: #a9b6c8;
+  color: var(--text-muted);
 }
 
 html.dark .toc-item:hover {
-  background: rgba(95, 110, 138, 0.12);
+  background: rgba(166, 185, 212, 0.12);
 }
 
 html.dark .toc-item.active {
-  color: #d7e2f1;
-  background: rgba(95, 110, 138, 0.16);
+  background: rgba(166, 185, 212, 0.16);
 }
 
-html.dark .toc-item.active::before {
-  background: #a6b9d4;
-}
-
+/* Markdown 阅读区 */
 .markdown-content {
-  font-family: 'Work Sans', sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.86;
+  color: var(--text-main);
+  letter-spacing: 0.005em;
+}
+
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3) {
+  font-family: var(--font-serif);
+  color: var(--text-heading);
+  letter-spacing: -0.01em;
 }
 
 .markdown-content :deep(h1) {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 38px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: #475671;
-  margin: 0 0 24px;
-  padding-left: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.3;
+  font-weight: 800;
+  margin: 0 0 22px;
   scroll-margin-top: 108px;
 }
 
 .markdown-content :deep(h2) {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 28px;
-  line-height: 1.3;
-  font-weight: 700;
-  color: #475671;
-  margin: 48px 0 18px;
-  padding-left: 0;
+  position: relative;
+  font-size: clamp(22px, 2.4vw, 27px);
+  line-height: 1.38;
+  font-weight: 800;
+  margin: 42px 0 16px;
+  padding-top: 2px;
   scroll-margin-top: 108px;
 }
 
+.markdown-content :deep(h2)::before {
+  content: '';
+  display: block;
+  width: 28px;
+  height: 3px;
+  margin-bottom: 11px;
+  border-radius: 999px;
+  background: var(--text-accent);
+  opacity: 0.7;
+}
+
 .markdown-content :deep(h3) {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 20px;
-  line-height: 1.4;
-  font-weight: 700;
-  color: #475671;
-  margin: 32px 0 14px;
-  padding-left: 0;
+  font-size: clamp(18px, 2vw, 21px);
+  line-height: 1.45;
+  font-weight: 800;
+  margin: 30px 0 11px;
+  scroll-margin-top: 108px;
+}
+
+.markdown-content :deep(h4) {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 800;
+  color: var(--text-heading);
+  margin: 24px 0 8px;
   scroll-margin-top: 108px;
 }
 
 .markdown-content :deep(p) {
-  margin: 0 0 18px;
-  font-size: 16px;
-  line-height: 1.95;
-  color: #45484e;
+  margin: 0 0 16px;
+  font-size: 16.5px;
+  line-height: 1.86;
+  color: var(--text-main);
 }
 
+.markdown-content :deep(p + p) {
+  margin-top: 2px;
+}
+
+/* 列表基础间距 */
 .markdown-content :deep(ul),
 .markdown-content :deep(ol) {
-  padding-left: 24px;
+  padding-left: 1.45em;
+  margin: 14px 0 20px;
 }
 
+/* 列表项本身不要上下都加 margin，否则嵌套列表容易忽大忽小 */
 .markdown-content :deep(li) {
-  font-size: 16px;
-  line-height: 1.9;
-  color: #45484e;
+  margin-top: 20px;
+  padding-left: 4px;
+  font-size: 16.5px;
+  line-height: 1.82;
+  color: var(--text-main);
+}
+
+.markdown-content :deep(li:last-child) {
+  margin-bottom: -10px;
+  padding-left: 4px;
+  font-size: 16.5px;
+  line-height: 1.82;
+  color: var(--text-main);
+}
+
+/* 同级列表项之间的距离 */
+.markdown-content :deep(li + li) {
+  margin-top: 8px;
+}
+
+/* li 内部的段落归零，避免 Markdown 生成的 p 把列表撑乱 */
+.markdown-content :deep(li > p) {
+  margin: 0;
+}
+
+/* li 里有多个段落时，第二段开始再拉开 */
+.markdown-content :deep(li > p + p) {
+  margin-top: 8px;
+}
+
+
+
+/* 嵌套列表略微紧凑，避免越嵌套越松散 */
+.markdown-content :deep(li li) {
+  line-height: 1.75;
+}
+
+.markdown-content :deep(li li + li) {
+  margin-top: 6px;
+}
+
+/* 段落后接列表，给一点过渡距离 */
+.markdown-content :deep(p + ul),
+.markdown-content :deep(p + ol) {
+  margin-top: 10px;
+}
+
+/* 列表后接段落，给一点呼吸感 */
+.markdown-content :deep(ul + p),
+.markdown-content :deep(ol + p) {
+  margin-top: 18px;
+}
+
+.markdown-content :deep(li::marker) {
+  color: var(--text-accent);
+  font-weight: 700;
 }
 
 .markdown-content :deep(strong) {
-  font-weight: 700;
-  color: #465774;
+  font-weight: 800;
+  color: var(--text-accent);
+}
+
+.markdown-content :deep(a) {
+  color: var(--text-accent);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.markdown-content :deep(a:hover) {
+  text-decoration-thickness: 2px;
+}
+
+.markdown-content :deep(hr) {
+  height: 1px;
+  border: 0;
+  margin: 34px 0;
+  background: var(--border-soft);
 }
 
 .markdown-content :deep(.markdown-image) {
   max-width: 100%;
   height: auto;
   display: block;
-  margin: 1rem auto;
-  border-radius: 8px;
+  margin: 24px auto;
+  border-radius: 14px;
   cursor: pointer;
+  box-shadow: 0 14px 38px rgba(26, 35, 52, 0.1);
+}
+
+html.dark .markdown-content :deep(.markdown-image) {
+  box-shadow: none;
 }
 
 .markdown-content :deep(blockquote) {
-  margin: 28px 0;
-  padding: 24px 24px 24px 22px;
+  margin: 8px 0;
+  padding: 12px 20px 12px 19px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.72);
-  border-left: 4px solid #5f6e8a;
-  box-shadow: 0 6px 24px rgba(31, 31, 28, 0.04);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--text-accent);
+  box-shadow: var(--shadow-soft);
 }
 
 .markdown-content :deep(blockquote p) {
   margin: 0;
-  font-style: italic;
+  color: var(--text-soft);
+  font-size: 15.5px;
+  line-height: 1.78;
 }
 
-html.dark .markdown-content :deep(h1),
-html.dark .markdown-content :deep(h2),
-html.dark .markdown-content :deep(h3) {
-  color: #c2d0e4;
+.empty-content {
+  padding: 32px;
+  text-align: center;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--text-soft);
 }
 
-html.dark .markdown-content :deep(p),
-html.dark .markdown-content :deep(li) {
-  color: #c4cde0;
+.markdown-content :deep(.code-block) {
+  background: #1f2430;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 20px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.68;
+  box-shadow: 0 14px 34px rgba(20, 27, 39, 0.14);
 }
 
-html.dark .markdown-content :deep(strong) {
-  color: #d7e2f1;
+.markdown-content :deep(.code-block code) {
+  color: #e4e9f2;
+  font-family: var(--font-mono);
 }
 
-html.dark .markdown-content :deep(blockquote) {
-  background: rgba(30, 45, 70, 0.42);
-  box-shadow: none;
+.markdown-content :deep(.inline-code) {
+  background: rgba(95, 110, 138, 0.11);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: #b54866;
 }
 
+html.dark .markdown-content :deep(.inline-code) {
+  background: rgba(166, 185, 212, 0.14);
+  color: #f0a8bb;
+}
+
+.markdown-content :deep(.table-wrap) {
+  width: 100%;
+  overflow-x: auto;
+  margin: 22px 0;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-content :deep(.markdown-table) {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-main);
+}
+
+.markdown-content :deep(.markdown-table thead tr) {
+  background: rgba(95, 110, 138, 0.08);
+}
+
+.markdown-content :deep(.markdown-table th),
+.markdown-content :deep(.markdown-table td) {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.markdown-content :deep(.markdown-table th) {
+  font-weight: 800;
+  color: var(--text-accent);
+  white-space: nowrap;
+}
+
+.markdown-content :deep(.markdown-table tbody tr:last-child td) {
+  border-bottom: none;
+}
+
+.markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
+  background: rgba(95, 110, 138, 0.035);
+}
+
+html.dark .markdown-content :deep(.markdown-table thead tr) {
+  background: rgba(166, 185, 212, 0.1);
+}
+
+html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
+  background: rgba(166, 185, 212, 0.045);
+}
+
+/* 底部上一篇 / 下一篇：轻量导航样式 */
 .article-footer {
-  margin-top: 84px;
-  padding-top: 34px;
+  margin-top: 56px;
+  padding-top: 22px;
   padding-bottom: 1rem;
-  border-top: 1px solid rgba(197, 198, 206, 0.15);
+  border-top: 1px solid var(--border-soft);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 18px;
 }
 
 .nav-prev,
 .nav-next {
-  max-width: 44%;
+  max-width: 48%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: transparent;
   text-decoration: none;
-  transition: transform 0.2s ease;
+  box-shadow: none;
+  opacity: 0.86;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .nav-prev:hover,
 .nav-next:hover {
-  transform: translateX(3px);
+  opacity: 1;
+  transform: translateY(-1px);
+  border-color: var(--border-soft);
+  background: rgba(95, 110, 138, 0.045);
+}
+
+html.dark .nav-prev:hover,
+html.dark .nav-next:hover {
+  background: rgba(166, 185, 212, 0.075);
+}
+
+.nav-prev:active,
+.nav-next:active {
+  transform: translateY(0);
 }
 
 .nav-next {
@@ -1555,265 +1233,65 @@ html.dark .markdown-content :deep(blockquote) {
 
 .nav-label {
   display: block;
-  margin-bottom: 6px;
-  font-family: 'Work Sans', sans-serif;
+  margin-bottom: 4px;
+  font-family: var(--font-sans);
   font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8a8378;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
 }
 
 .nav-link-text {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #475671;
-  font-weight: 700;
+  gap: 7px;
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 650;
   line-height: 1.55;
   word-break: break-word;
+  transition: color 0.2s ease;
+}
+
+.nav-prev:hover .nav-link-text,
+.nav-next:hover .nav-link-text {
+  color: var(--text-accent);
 }
 
 .nav-next .nav-link-text {
   justify-content: flex-end;
 }
 
-.nav-link-text .material-symbols-outlined {
-  font-size: 16px;
-  flex-shrink: 0;
+.nav-link-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.72;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
-html.dark .nav-label {
-  color: #9aa4b5;
+.nav-prev:hover .nav-link-icon,
+.nav-next:hover .nav-link-icon {
+  opacity: 1;
 }
 
-html.dark .nav-link-text {
-  color: #d7e2f1;
+.nav-prev:hover .nav-link-icon {
+  transform: translateX(-2px);
+}
+
+.nav-next:hover .nav-link-icon {
+  transform: translateX(2px);
 }
 
 .mobile-top-nav {
   display: none;
 }
 
-.mobile-panel-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 18, 24, 0.26);
-  z-index: 2200;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.26s ease, visibility 0.26s ease;
-}
-
-.mobile-panel-overlay.active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.mobile-panel-drawer {
-  position: absolute;
-  top: 0;
-  width: min(86vw, 23rem);
-  height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
-  padding: calc(88px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
-  background: rgba(253, 252, 251, 0.98);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
-  transition: transform 0.28s ease;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(95, 110, 138, 0.45) transparent;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-thumb {
-  background: rgba(95, 110, 138, 0.42);
-  border-radius: 999px;
-}
-
-.mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
-  background: rgba(95, 110, 138, 0.6);
-}
-
-html.dark .mobile-panel-drawer {
-  background: rgba(27, 39, 57, 0.98);
-  scrollbar-color: rgba(166, 185, 212, 0.42) transparent;
-}
-
-html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb {
-  background: rgba(166, 185, 212, 0.38);
-}
-
-html.dark .mobile-panel-drawer::-webkit-scrollbar-thumb:hover {
-  background: rgba(166, 185, 212, 0.56);
-}
-
-.mobile-panel-drawer--left {
-  left: 0;
-  transform: translateX(-100%);
-}
-
-.mobile-panel-overlay.active .mobile-panel-drawer--left {
-  transform: translateX(0);
-}
-
-.mobile-panel-drawer--right {
-  right: 0;
-  transform: translateX(100%);
-}
-
-.mobile-panel-overlay.active .mobile-panel-drawer--right {
-  transform: translateX(0);
-}
-
-.mobile-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 22px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(214, 209, 201, 0.5);
-}
-
-html.dark .mobile-panel-header {
-  border-bottom-color: rgba(166, 185, 212, 0.14);
-}
-
-.mobile-panel-title {
-  margin: 0;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #475671;
-}
-
-html.dark .mobile-panel-title {
-  color: #d7e2f1;
-}
-
-.mobile-panel-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: #7a766f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-html.dark .mobile-panel-close {
-  color: #a6afbf;
-}
-
-.mobile-toc-nav {
-  gap: 10px;
-}
-
-.back-to-top-btn {
-  position: fixed;
-  right: 2rem;
-  bottom: 4.5rem;
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  z-index: 2300;
-  transition:
-    transform 0.24s ease,
-    opacity 0.24s ease;
-}
-
-.back-to-top-btn:hover {
-  transform: translateY(-2px) scale(1.03);
-}
-
-.back-to-top-btn:active {
-  transform: scale(0.98);
-}
-
-.back-to-top-ring__inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.back-to-top-ring__svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-  overflow: visible;
-}
-
-.back-to-top-ring__track,
-.back-to-top-ring__progress {
-  fill: none;
-  stroke-width: 3;
-}
-
-.back-to-top-ring__track {
-  stroke: rgba(0, 0, 0, 0.12);
-}
-
-.back-to-top-ring__progress {
-  stroke: #4b4b47;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.18s linear;
-}
-
-.back-to-top-ring__label,
-.back-to-top-ring__icon {
-  position: absolute;
-  inset: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #4b4b47;
-}
-
-.back-to-top-ring__label {
-  font-family: 'Work Sans', sans-serif;
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 600;
-}
-
-.back-to-top-ring__icon {
-  font-size: 20px;
-}
-
-html.dark .back-to-top-ring__track {
-  stroke: rgba(255, 255, 255, 0.16);
-}
-
-html.dark .back-to-top-ring__progress {
-  stroke: rgba(255, 255, 255, 0.82);
-}
-
-html.dark .back-to-top-ring__label,
-html.dark .back-to-top-ring__icon {
-  color: rgba(255, 255, 255, 0.9);
-}
-
 @media (max-width: 947px) {
   .knowledge-page {
+    --content-max: 100%;
     overflow: visible;
   }
 
@@ -1831,37 +1309,38 @@ html.dark .back-to-top-ring__icon {
     width: 100%;
     grid-template-columns: 1fr 1fr;
     align-items: center;
-    margin-bottom: 28px;
-    background: rgba(247, 245, 241, 0.92);
+    margin-bottom: 24px;
+    background: rgba(247, 248, 250, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(165, 162, 156, 0.5);
-    border-bottom: 1px solid rgba(214, 209, 201, 0.5);
+    border-top: 1px solid rgba(165, 172, 186, 0.35);
+    border-bottom: 1px solid rgba(165, 172, 186, 0.35);
   }
 
   html.dark .mobile-top-nav {
-    background: rgba(20, 30, 45, 0.88);
+    background: rgba(20, 30, 45, 0.9);
     border-top-color: rgba(166, 185, 212, 0.12);
     border-bottom-color: rgba(166, 185, 212, 0.14);
   }
 
   .mobile-top-nav__btn {
-    height: 48px;
+    height: 46px;
     padding: 0 16px;
     border: none;
     background: transparent;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #6f6a62;
+    color: var(--text-soft);
+    font-family: var(--font-sans);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
   }
 
   .mobile-top-nav__btn--left {
     justify-content: flex-start;
-    border-right: 1px solid rgba(214, 209, 201, 0.5);
+    border-right: 1px solid rgba(165, 172, 186, 0.35);
   }
 
   .mobile-top-nav__btn--right {
@@ -1873,182 +1352,151 @@ html.dark .back-to-top-ring__icon {
     cursor: not-allowed;
   }
 
-  html.dark .mobile-top-nav__btn {
-    color: #c0cadb;
-  }
-
   html.dark .mobile-top-nav__btn--left {
     border-right-color: rgba(166, 185, 212, 0.14);
-  }
-
-  .mobile-panel-drawer .sidebar-nav,
-  .mobile-panel-drawer .toc-nav {
-    flex: none;
-    height: auto;
-    min-height: auto;
-    overflow: visible;
   }
 
   .article-header,
   .article-body,
   .article-footer {
-    padding-left: 24px;
-    padding-right: 24px;
-    padding-bottom: 24px;
+    padding-left: 22px;
+    padding-right: 22px;
   }
 
   .article-header {
     margin-top: 0;
-    margin-bottom: 36px;
+    margin-bottom: 28px;
+    padding-bottom: 22px;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    margin-bottom: 10px;
   }
 
   .article-title {
     font-size: 28px;
-    line-height: 1.22;
+    line-height: 1.25;
     max-width: none;
+    margin-bottom: 12px;
   }
 
   .article-summary {
+    font-size: 15.5px;
+    line-height: 1.75;
+  }
+
+  .markdown-content {
     font-size: 16px;
-    line-height: 1.8;
+    line-height: 1.82;
+  }
+
+  .markdown-content :deep(h1) {
+    font-size: 25px;
+    line-height: 1.32;
+    margin-bottom: 18px;
+  }
+
+  .markdown-content :deep(h2) {
+    font-size: 22px;
+    line-height: 1.38;
+    margin: 36px 0 14px;
+  }
+
+  .markdown-content :deep(h2)::before {
+    width: 26px;
+    height: 3px;
+    margin-bottom: 10px;
+  }
+
+  .markdown-content :deep(h3) {
+    font-size: 19px;
+    line-height: 1.45;
+    margin: 28px 0 10px;
+  }
+
+  .markdown-content :deep(h4) {
+    font-size: 16.5px;
+    margin: 22px 0 8px;
+  }
+
+  .markdown-content :deep(p),
+  .markdown-content :deep(li) {
+    font-size: 16px;
+    line-height: 1.82;
+  }
+
+  .markdown-content :deep(p) {
+    margin-bottom: 15px;
+  }
+
+  .markdown-content :deep(ul),
+  .markdown-content :deep(ol) {
+    padding-left: 1.35em;
+    margin: 12px 0 18px;
+  }
+
+  .markdown-content :deep(li + li) {
+    margin-top: 7px;
+  }
+
+  .markdown-content :deep(li > ul),
+  .markdown-content :deep(li > ol) {
+    margin-top: 7px;
+    margin-bottom: 3px;
+  }
+
+  .markdown-content :deep(li li + li) {
+    margin-top: 5px;
+  }
+
+  .markdown-content :deep(blockquote) {
+    margin: 10px 0;
+    padding: 12px 17px;
+    border-radius: 15px;
+  }
+
+  .markdown-content :deep(.code-block) {
+    margin: 18px 0;
+    padding: 15px;
+    border-radius: 13px;
+    font-size: 13px;
   }
 
   .article-footer {
-    margin-top: 56px;
-    gap: 14px;
+    margin-top: 42px;
+    padding-top: 20px;
+    padding-bottom: 24px;
+    gap: 12px;
   }
 
   .nav-prev,
   .nav-next {
-    max-width: 48%;
+    max-width: 50%;
+    min-height: auto;
+    padding: 11px 10px;
+    border-radius: 13px;
   }
 
-  .back-to-top-btn {
-    right: 2rem;
-    bottom: 5rem;
-    width: 58px;
-    height: 58px;
+  .nav-label {
+    font-size: 10.5px;
   }
 
-  .back-to-top-ring__label {
-    font-size: 12px;
+  .nav-link-text {
+    font-size: 13.5px;
+    line-height: 1.5;
   }
 
-  .back-to-top-ring__icon {
-    font-size: 18px;
+  .nav-link-icon {
+    width: 13px;
+    height: 13px;
   }
-}
 
-@media (min-width: 1200px) {
-  .back-to-top-btn {
-    right: 16rem;
-    bottom: 5rem;
-    width: 58px;
-    height: 58px;
+  .markdown-content :deep(.table-wrap) {
+    margin: 20px 0;
+    border-radius: 13px;
   }
-}
 
-.empty-content {
-  padding: 32px;
-  text-align: center;
-}
-
-.markdown-content :deep(.code-block) {
-  background: #1e1e1e;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
-  overflow-x: auto;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.markdown-content :deep(.code-block code) {
-  color: #d4d4d4;
-}
-
-.markdown-content :deep(.inline-code) {
-  background: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.9em;
-  color: #e83e8c;
-}
-
-.markdown-content :deep(.table-wrap) {
-  width: 100%;
-  overflow-x: auto;
-  margin: 24px 0;
-  border-radius: 14px;
-  border: 1px solid rgba(95, 110, 138, 0.14);
-  background: rgba(255, 255, 255, 0.78);
-  -webkit-overflow-scrolling: touch;
-}
-
-.markdown-content :deep(.markdown-table) {
-  width: 100%;
-  min-width: 560px;
-  border-collapse: collapse;
-  font-size: 15px;
-  line-height: 1.7;
-  color: #45484e;
-}
-
-.markdown-content :deep(.markdown-table thead tr) {
-  background: rgba(95, 110, 138, 0.08);
-}
-
-.markdown-content :deep(.markdown-table th),
-.markdown-content :deep(.markdown-table td) {
-  padding: 14px 16px;
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid rgba(95, 110, 138, 0.12);
-}
-
-.markdown-content :deep(.markdown-table th) {
-  font-weight: 700;
-  color: #465774;
-  white-space: nowrap;
-}
-
-.markdown-content :deep(.markdown-table tbody tr:last-child td) {
-  border-bottom: none;
-}
-
-.markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
-  background: rgba(95, 110, 138, 0.03);
-}
-
-html.dark .markdown-content :deep(.table-wrap) {
-  background: rgba(27, 39, 57, 0.72);
-  border-color: rgba(166, 185, 212, 0.14);
-}
-
-html.dark .markdown-content :deep(.markdown-table) {
-  color: #c4cde0;
-}
-
-html.dark .markdown-content :deep(.markdown-table thead tr) {
-  background: rgba(166, 185, 212, 0.1);
-}
-
-html.dark .markdown-content :deep(.markdown-table th) {
-  color: #d7e2f1;
-}
-
-html.dark .markdown-content :deep(.markdown-table th),
-html.dark .markdown-content :deep(.markdown-table td) {
-  border-bottom-color: rgba(166, 185, 212, 0.12);
-}
-
-html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
-  background: rgba(166, 185, 212, 0.04);
-}
-
-@media (max-width: 947px) {
   .markdown-content :deep(.markdown-table) {
     min-width: 520px;
     font-size: 14px;
@@ -2056,7 +1504,35 @@ html.dark .markdown-content :deep(.markdown-table tbody tr:nth-child(even)) {
 
   .markdown-content :deep(.markdown-table th),
   .markdown-content :deep(.markdown-table td) {
-    padding: 12px 14px;
+    padding: 11px 13px;
+  }
+}
+
+@media (max-width: 560px) {
+  .article-header,
+  .article-body,
+  .article-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .article-title {
+    font-size: 26px;
+  }
+
+  .article-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .nav-prev,
+  .nav-next {
+    max-width: none;
+    width: 100%;
+  }
+
+  .nav-next {
+    margin-left: 0;
   }
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useScrollProgress } from '@/composables/useScrollProgress'
 
 interface Props {
   showAt?: number
@@ -33,18 +34,19 @@ const props = withDefaults(defineProps<Props>(), {
   useTeleport: true,
 })
 
-const scrollProgress = ref(0)
-const showBackToTop = ref(false)
-const showBackToTopArrow = ref(false)
-
-let scrollIdleTimer: number | null = null
-let scrollRafId: number | null = null
-
-const progressRadius = 24
-const progressCircumference = 2 * Math.PI * progressRadius
-
-const progressDashOffset = computed(() => {
-  return progressCircumference * (1 - scrollProgress.value / 100)
+const {
+  scrollProgress,
+  showBackToTop,
+  showBackToTopArrow,
+  progressRadius,
+  progressCircumference,
+  progressDashOffset,
+  updateScrollProgress,
+  scrollToTop,
+  clearScrollUiTimers,
+} = useScrollProgress({
+  showAt: props.showAt,
+  idleDelay: props.idleDelay,
 })
 
 const cssVars = computed(() => ({
@@ -60,89 +62,18 @@ const cssVars = computed(() => ({
   '--back-top-z-index': String(props.zIndex),
 }))
 
-const updateScrollProgress = () => {
-  const scrollTop = window.scrollY || window.pageYOffset || 0
-  const doc = document.documentElement
-  const scrollHeight = doc.scrollHeight
-  const clientHeight = window.innerHeight
-  const maxScroll = Math.max(scrollHeight - clientHeight, 0)
-
-  const progress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0
-  scrollProgress.value = Math.round(progress * 100)
-
-  showBackToTop.value = scrollTop > props.showAt
-
-  if (!showBackToTop.value) {
-    showBackToTopArrow.value = false
-  }
-}
-
-const handleScrollProgress = () => {
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-  }
-
-  scrollRafId = window.requestAnimationFrame(() => {
-    updateScrollProgress()
-
-    if (!showBackToTop.value) return
-
-    showBackToTopArrow.value = false
-
-    if (scrollIdleTimer !== null) {
-      window.clearTimeout(scrollIdleTimer)
-    }
-
-    scrollIdleTimer = window.setTimeout(() => {
-      showBackToTopArrow.value = true
-    }, props.idleDelay)
-  })
-}
-
-const scrollToTop = () => {
-  const lenis = (window as any).__lenis
-
-  if (lenis) {
-    lenis.scrollTo(0, {
-      duration: 1.2,
-      easing: (t: number) => 1 - Math.pow(1 - t, 3),
-    })
-    return
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-const clearScrollUiTimers = () => {
-  if (scrollIdleTimer !== null) {
-    window.clearTimeout(scrollIdleTimer)
-    scrollIdleTimer = null
-  }
-
-  if (scrollRafId !== null) {
-    cancelAnimationFrame(scrollRafId)
-    scrollRafId = null
-  }
-}
-
 onMounted(() => {
-  updateScrollProgress()
-  window.addEventListener('scroll', handleScrollProgress, { passive: true })
   window.addEventListener('resize', updateScrollProgress)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScrollProgress)
   window.removeEventListener('resize', updateScrollProgress)
   clearScrollUiTimers()
 })
 </script>
 
 <template>
-  <Teleport v-if="useTeleport" to="body">
+  <Teleport to="body" :disabled="!useTeleport">
     <button
       v-show="showBackToTop"
       class="back-to-top-btn back-to-top-ring"
@@ -156,6 +87,7 @@ onUnmounted(() => {
           class="back-to-top-ring__svg"
           viewBox="0 0 56 56"
           aria-hidden="true"
+          focusable="false"
         >
           <circle
             class="back-to-top-ring__track"
@@ -182,60 +114,28 @@ onUnmounted(() => {
 
         <span
           v-else
-          class="material-symbols-outlined back-to-top-ring__icon"
+          class="back-to-top-ring__icon"
+          aria-hidden="true"
         >
-          arrow_upward
+          <svg
+            class="back-to-top-ring__local-icon"
+            viewBox="0 0 24 24"
+            focusable="false"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 19V5m0 0-7 7m7-7 7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </span>
       </span>
     </button>
   </Teleport>
-
-  <button
-    v-else
-    v-show="showBackToTop"
-    class="back-to-top-btn back-to-top-ring"
-    :style="cssVars"
-    type="button"
-    aria-label="返回顶部"
-    @click="scrollToTop"
-  >
-    <span class="back-to-top-ring__inner">
-      <svg
-        class="back-to-top-ring__svg"
-        viewBox="0 0 56 56"
-        aria-hidden="true"
-      >
-        <circle
-          class="back-to-top-ring__track"
-          cx="28"
-          cy="28"
-          :r="progressRadius"
-        />
-        <circle
-          class="back-to-top-ring__progress"
-          cx="28"
-          cy="28"
-          :r="progressRadius"
-          :stroke-dasharray="progressCircumference"
-          :stroke-dashoffset="progressDashOffset"
-        />
-      </svg>
-
-      <span
-        v-if="!showBackToTopArrow"
-        class="back-to-top-ring__label"
-      >
-        {{ scrollProgress }}%
-      </span>
-
-      <span
-        v-else
-        class="material-symbols-outlined back-to-top-ring__icon"
-      >
-        arrow_upward
-      </span>
-    </span>
-  </button>
 </template>
 
 <style scoped>
@@ -311,7 +211,15 @@ onUnmounted(() => {
 }
 
 .back-to-top-ring__icon {
-  font-size: 20px;
+  width: 100%;
+  height: 100%;
+}
+
+.back-to-top-ring__local-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: currentColor;
 }
 
 :global(html.dark) .back-to-top-ring__track {
@@ -339,8 +247,9 @@ onUnmounted(() => {
     font-size: 12px;
   }
 
-  .back-to-top-ring__icon {
-    font-size: 18px;
+  .back-to-top-ring__local-icon {
+    width: 18px;
+    height: 18px;
   }
 }
 

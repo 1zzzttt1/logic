@@ -1,16 +1,5 @@
-export interface Article {
-  id: string
-  title: string
-  summary: string
-  content: string
-  sourceUrl: string
-  sourceTitle: string
-  sourceAuthor?: string
-  tags: string[]
-  publishedAt: string
-  createdAt: string
-  updatedAt: string
-}
+import type { Article } from '@/types'
+import { parseFrontmatter } from '@/utils/frontmatter'
 
 // 动态加载 MD 文件
 const mdModules = import.meta.glob('/src/data/articles/*.md', {
@@ -18,35 +7,6 @@ const mdModules = import.meta.glob('/src/data/articles/*.md', {
   import: 'default',
   eager: true
 })
-
-// 解析 frontmatter
-function parseFrontmatter(content: string): { metadata: Record<string, unknown>; content: string } {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (!match) {
-    return { metadata: {}, content }
-  }
-
-  const yamlStr = match[1] || ''
-  const markdown = match[2] || ''
-
-  const metadata: Record<string, unknown> = {}
-  if (yamlStr) {
-    yamlStr.split('\n').forEach(line => {
-      const [key, ...valueParts] = line.split(':')
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim()
-        // 解析数组
-        if (value.startsWith('[') && value.endsWith(']')) {
-          metadata[key.trim()] = value.slice(1, -1).split(',').map(s => s.trim())
-        } else {
-          metadata[key.trim()] = value.replace(/^["']|["']$/g, '')
-        }
-      }
-    })
-  }
-
-  return { metadata, content: markdown }
-}
 
 // 转换 MD 文件为文章数组
 export const mdArticles = Object.entries(mdModules).map(([path, content]) => {
