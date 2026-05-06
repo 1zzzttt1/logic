@@ -1,5 +1,5 @@
 ---
-title: AI Agent的外部能力： "MCP" 还是 "SKill + CLI"？
+title: AI Agent 的外部能力： "MCP" 还是 "SKill + CLI"？
 publishedAt: 2026-04-05
 tags:
   - CLI
