@@ -15,6 +15,8 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "generate-meta": "jiti scripts/generate-metadata.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prebuild": "pnpm run generate-meta",
     "predev": "pnpm run generate-meta",
     "format": "prettier --write --experimental-cli src/"
@@ -44,6 +46,7 @@
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-vue-devtools": "^8.0.6",
+    "vitest": "^4.1.5",
     "vue-tsc": "^3.2.5"
   },
   "engines": {

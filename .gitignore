@@ -30,3 +30,4 @@ dist-ssr
 src/data/*/
 !src/data/articles/
 !src/data/knowledge/
+!src/data/__tests__/
