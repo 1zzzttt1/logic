@@ -76,7 +76,7 @@ export interface Article extends ArticleMeta {
 
 - 删除 5 个 `eager: true` glob
 - 导入生成的 `knowledgeMeta`
-- 新增唯一 lazy glob：`import.meta.glob('/src/data/knowledge/**/*.md', { eager: false })`
+- 新增唯一 lazy glob：`import.meta.glob('/src/data/knowledge/**/*.md', { query: '?raw', import: 'default', eager: false })`
 - `knowledgeData` 从元数据组装，不含正文
 - 导出 `loadKnowledgeContent(category: string, id: string): Promise<string>` 按需加载正文
 - `getArticlesByCategory` / `getArticleById` 返回 `KnowledgeArticleMeta`
@@ -85,8 +85,8 @@ export interface Article extends ArticleMeta {
 
 - 删除 `eager: true` glob
 - 导入生成的 `articlesMeta`
-- 3 篇硬编码内联文章抽出为独立 `.md` 文件
-- 新增 lazy glob：`import.meta.glob('/src/data/articles/*.md', { eager: false })`
+- 3 篇硬编码内联文章抽出为独立 `.md` 文件（frontmatter 字段扩展为包含 sourceUrl、sourceTitle 等，`parseFrontmatter` 按 key: value 通用解析，无需修改）
+- 新增 lazy glob：`import.meta.glob('/src/data/articles/*.md', { query: '?raw', import: 'default', eager: false })`
 - `mdArticles` 导出纯 `ArticleMeta[]`
 - 导出 `loadArticleContent(id: string): Promise<string>` 按需加载正文
 
@@ -95,7 +95,7 @@ export interface Article extends ArticleMeta {
 - `selectedArticle` 拆为 `selectedArticleMeta`（同步）+ `articleContent`（异步）
 - 选中文章时立即设置 meta，异步加载正文
 - 标题、描述从 meta 读取（始终立即可用）
-- 正文区域：加载中显示骨架屏，完成后渲染 markdown
+- 正文区域：加载中显示骨架屏，完成后渲染 markdown，加载失败显示错误提示
 - TOC 在 `articleContent` 变化后重新生成
 - 前一章/后一章导航使用 meta 数据
 
@@ -117,8 +117,8 @@ export interface Article extends ArticleMeta {
 {
   "scripts": {
     "generate-meta": "npx tsx scripts/generate-metadata.ts",
-    "prebuild": "npm run generate-meta",
-    "predev": "npm run generate-meta"
+    "prebuild": "pnpm run generate-meta",
+    "predev": "pnpm run generate-meta"
   }
 }
 ```
