@@ -26,5 +26,7 @@ dist-ssr
 # Worktrees
 .worktrees/
 
-# Personal notes (all subdirs under data)
+# Personal notes (all subdirs under data, except tracked content directories)
 src/data/*/
+!src/data/articles/
+!src/data/knowledge/
