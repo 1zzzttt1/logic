@@ -14,6 +14,9 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
+    "generate-meta": "jiti scripts/generate-metadata.ts",
+    "prebuild": "pnpm run generate-meta",
+    "predev": "pnpm run generate-meta",
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
