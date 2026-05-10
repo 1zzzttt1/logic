@@ -171,6 +171,7 @@ watch(
   () => route.params.id,
   async (newId) => {
     if (newId) {
+      window.scrollTo(0, 0)
       await loadContent(newId as string)
     }
   },
