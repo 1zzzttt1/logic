@@ -1,125 +1,60 @@
 import { parseFrontmatter } from '@/utils/frontmatter'
+import { knowledgeMeta } from '@/data/knowledge-meta'
+import type { KnowledgeArticleMeta, KnowledgeCategory } from '@/types'
 
-export interface KnowledgeArticle {
-  id: string
-  title: string
-  description: string
-  content: string
-  category: string
-  order: number
-}
+// 向后兼容：KnowledgeView.vue 导入 type KnowledgeArticle，实际指向无 content 的元数据类型
+// TODO: Task 8 会将 KnowledgeView.vue 中的导入改为 KnowledgeArticleMeta
+export type KnowledgeArticle = KnowledgeArticleMeta
 
-export interface KnowledgeCategory {
-  id: string
-  name: string
-  articles: KnowledgeArticle[]
-}
-
-// 一级菜单配置（固定）
+// 分类配置（固定列表）
 export const knowledgeCategories = [
   { id: 'ai-basics', name: 'AI基础' },
   { id: 'claude-code', name: 'Claude Code使用教程' },
-  { id: 'build-with-claude-code', name: '使用claude code开发'},
+  { id: 'build-with-claude-code', name: '使用claude code开发' },
   { id: 'ai-development', name: 'AI应用开发' },
   { id: 'agent-skills', name: 'agent Skills' },
-
 ]
 
-// 动态加载各分类下的 MD 文件
-const aiBasicsModules = import.meta.glob('/src/data/knowledge/ai-basics/*.md', {
+// Lazy glob：仅在调用 loadKnowledgeContent 时加载对应文件
+const knowledgeModules = import.meta.glob('/src/data/knowledge/**/*.md', {
   query: '?raw',
   import: 'default',
-  eager: true
-})
+  eager: false,
+}) as Record<string, () => Promise<string>>
 
-const claudeCodeModules = import.meta.glob('/src/data/knowledge/claude-code/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true
-})
+// 从元数据组装知识库数据（不含 content）
+export const knowledgeData: KnowledgeCategory[] = knowledgeCategories.map((cat) => ({
+  id: cat.id,
+  name: cat.name,
+  articles: knowledgeMeta[cat.id] || [],
+}))
 
-const aiDevelopmentModules = import.meta.glob('/src/data/knowledge/ai-development/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true
-})
-
-const buildWithClaudeCodeModules = import.meta.glob('/src/data/knowledge/build-with-claude-code/*.md', {
-    query: '?raw',
-    import: 'default',
-    eager: true
-  })
-
-const agentSkillsModules = import.meta.glob('/src/data/knowledge/agent-skills/*.md', {
-    query: '?raw',
-    import: 'default',
-    eager: true
-  })
-
-// 转换 MD 文件为知识文章数组
-function convertToArticles(modules: Record<string, unknown>, category: string): KnowledgeArticle[] {
-  const articles = Object.entries(modules).map(([path, content]) => {
-    const filename = path.split('/').pop()?.replace('.md', '') || ''
-    const { metadata, content: markdownContent } = parseFrontmatter(content as string)
-
-    return {
-      id: filename,
-      title: (metadata.title as string) || filename,
-      description: (metadata.description as string) || '',
-      content: markdownContent || '',
-      category,
-      order: Number(metadata.order) || 0
-    }
-  })
-
-  return articles.sort((a, b) => a.order - b.order)
-}
-
-// 导出各分类的文章
-export const aiBasicsArticles = convertToArticles(aiBasicsModules, 'ai-basics')
-export const claudeCodeArticles = convertToArticles(claudeCodeModules, 'claude-code')
-export const aiDevelopmentArticles = convertToArticles(aiDevelopmentModules, 'ai-development')
-export const buildWithClaudeCodeArticles = convertToArticles(buildWithClaudeCodeModules, 'build-with-claude-code')
-export const agentSkillsArticles = convertToArticles(agentSkillsModules, 'agent-skills')
-
-// 导出完整的知识库数据
-export const knowledgeData: KnowledgeCategory[] = [
-  {
-    id: 'ai-basics',
-    name: 'AI基础',
-    articles: aiBasicsArticles
-  },
-  {
-    id: 'claude-code',
-    name: 'Claude Code使用教程',
-    articles: claudeCodeArticles
-  },
-  {
-    id: 'agent-skills',
-    name: 'Agent Skills',
-    articles: agentSkillsArticles
-  },
-  {
-    id: 'build-with-claude-code',
-    name: '使用Claude Code开发',
-    articles: buildWithClaudeCodeArticles
-  },
-  {
-    id: 'ai-development',
-    name: 'AI应用开发',
-    articles: aiDevelopmentArticles
-  },
-
-]
-
-// 根据分类获取文章
-export function getArticlesByCategory(categoryId: string): KnowledgeArticle[] {
-  const category = knowledgeData.find(c => c.id === categoryId)
+// 根据分类获取文章元数据列表
+export function getArticlesByCategory(categoryId: string): KnowledgeArticleMeta[] {
+  const category = knowledgeData.find((c) => c.id === categoryId)
   return category?.articles || []
 }
 
-// 根据 ID 获取文章
-export function getArticleById(categoryId: string, articleId: string): KnowledgeArticle | undefined {
+// 根据 ID 获取文章元数据
+export function getArticleById(
+  categoryId: string,
+  articleId: string,
+): KnowledgeArticleMeta | undefined {
   const articles = getArticlesByCategory(categoryId)
-  return articles.find(a => a.id === articleId)
+  return articles.find((a) => a.id === articleId)
+}
+
+// 惰性加载文章正文
+export async function loadKnowledgeContent(
+  category: string,
+  id: string,
+): Promise<string> {
+  const key = `/src/data/knowledge/${category}/${id}.md`
+  const loader = knowledgeModules[key]
+  if (!loader) {
+    throw new Error(`Article not found: ${category}/${id}`)
+  }
+  const rawContent: string = await loader()
+  const { content } = parseFrontmatter(rawContent)
+  return content
 }

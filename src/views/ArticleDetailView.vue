@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { renderMarkdown } from '@/utils/markdown'
-import { mdArticles } from '../data/articles'
+import { mdArticles, loadArticleContent } from '../data/articles'
 import BackToTopButton from '@/components/BackToTopButton.vue'
 import ImagePreview from '@/components/ImagePreview.vue'
 
@@ -11,6 +11,10 @@ const router = useRouter()
 
 const showImagePreview = ref(false)
 const previewImageSrc = ref('')
+
+const articleContent = ref('')
+const isContentLoading = ref(true)
+const contentError = ref<string | null>(null)
 
 const article = computed(() => {
   const id = route.params.id as string
@@ -108,9 +112,9 @@ const normalizeMarkdownImages = (html: string) => {
 }
 
 const renderedContent = computed(() => {
-  if (!article.value) return ''
+  if (!articleContent.value) return ''
 
-  const html = renderMarkdown(article.value.content)
+  const html = renderMarkdown(articleContent.value)
   return normalizeMarkdownImages(html)
 })
 
@@ -133,6 +137,46 @@ const openSource = () => {
     window.open(article.value.sourceUrl, '_blank', 'noopener,noreferrer')
   }
 }
+
+let currentLoadId = 0
+
+const loadContent = async (id: string) => {
+  const loadId = ++currentLoadId
+  isContentLoading.value = true
+  contentError.value = null
+  articleContent.value = ''
+
+  try {
+    const content = await loadArticleContent(id)
+    if (loadId !== currentLoadId) return // Stale response
+    articleContent.value = content
+  } catch (e) {
+    if (loadId !== currentLoadId) return
+    contentError.value = (e as Error).message
+  } finally {
+    if (loadId === currentLoadId) {
+      isContentLoading.value = false
+    }
+  }
+}
+
+const retryLoadContent = () => {
+  const id = route.params.id as string
+  if (id) {
+    loadContent(id).catch(() => {})
+  }
+}
+
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId) {
+      window.scrollTo(0, 0)
+      await loadContent(newId as string)
+    }
+  },
+  { immediate: true },
+)
 
 const handleImageClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement
@@ -203,7 +247,35 @@ onMounted(() => {
           <p class="article-summary">{{ article.summary }}</p>
         </header>
 
+        <div v-if="isContentLoading" class="skeleton-content">
+          <div class="skeleton-block skeleton-block--title"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-block--short"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-block--image"></div>
+          <div class="skeleton-block skeleton-block--medium"></div>
+        </div>
+
+        <div v-else-if="contentError" class="error-content">
+          <svg
+            class="error-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15v-2h4v2zm0-4V7h4v6z"
+              fill="currentColor"
+            />
+          </svg>
+          <p class="error-message">加载失败</p>
+          <p class="error-detail">{{ contentError }}</p>
+          <button class="error-retry-btn" type="button" @click="retryLoadContent">重试</button>
+        </div>
+
         <article
+          v-else
           class="article-content"
           v-html="renderedContent"
           @click="handleImageClick"
@@ -1134,6 +1206,141 @@ html.dark .not-found p {
   line-height: 1;
 }
 
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-content {
+  padding: 4px 0 20px;
+}
+
+.skeleton-block {
+  height: 18px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(246, 247, 249, 0.72) 25%,
+    rgba(166, 185, 212, 0.12) 50%,
+    rgba(246, 247, 249, 0.72) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+html.dark .skeleton-block {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 45, 68, 0.54) 25%,
+    rgba(166, 185, 212, 0.1) 50%,
+    rgba(30, 45, 68, 0.54) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-block--title {
+  height: 28px;
+  width: 55%;
+  margin-bottom: 26px;
+}
+
+.skeleton-block--short {
+  width: 38%;
+}
+
+.skeleton-block--medium {
+  width: 65%;
+}
+
+.skeleton-block--image {
+  height: 140px;
+  width: 100%;
+  border-radius: 14px;
+}
+
+/* Error state */
+.error-content {
+  padding: 48px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: #e35050;
+  margin-bottom: 8px;
+}
+
+html.dark .error-icon {
+  color: #f07070;
+}
+
+.error-message {
+  font-family: var(--font-reading);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f1f1c;
+  margin: 0;
+}
+
+html.dark .error-message {
+  color: #f4f6fa;
+}
+
+.error-detail {
+  font-family: var(--font-reading);
+  font-size: 14px;
+  color: #7a766f;
+  margin: 0 0 12px;
+  max-width: 400px;
+  word-break: break-word;
+}
+
+html.dark .error-detail {
+  color: #a6afbf;
+}
+
+.error-retry-btn {
+  padding: 10px 28px;
+  border: 1px solid rgba(214, 209, 201, 0.52);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #5f6e8a;
+  font-family: var(--font-reading);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.error-retry-btn:hover {
+  background: #5f6e8a;
+  color: #ffffff;
+  border-color: #5f6e8a;
+}
+
+html.dark .error-retry-btn {
+  border-color: rgba(166, 185, 212, 0.16);
+  background: rgba(22, 32, 48, 0.72);
+  color: #d7e2f1;
+}
+
+html.dark .error-retry-btn:hover {
+  background: #d7e2f1;
+  color: #142033;
+  border-color: #d7e2f1;
+}
+
 @media (max-width: 768px) {
   .article-detail-page {
     padding: 5.75rem 1rem 3rem;
@@ -1280,6 +1487,28 @@ html.dark .not-found p {
   .not-found__card {
     padding: 2.15rem 1.15rem;
     border-radius: 1.25rem;
+  }
+
+  .skeleton-content {
+    padding: 2px 0 16px;
+  }
+
+  .skeleton-block {
+    height: 16px;
+    margin-bottom: 12px;
+  }
+
+  .skeleton-block--title {
+    height: 24px;
+    margin-bottom: 20px;
+  }
+
+  .skeleton-block--image {
+    height: 110px;
+  }
+
+  .error-content {
+    padding: 36px 20px;
   }
 }
 

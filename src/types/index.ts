@@ -1,26 +1,29 @@
-// 知识库文章
-export interface KnowledgeArticle {
+// 不含正文 —— 侧边栏 / 列表用
+export interface KnowledgeArticleMeta {
   id: string
   title: string
   description: string
-  content: string
   category: string
   order: number
+}
+
+// 含正文 —— 文章渲染用
+export interface KnowledgeArticle extends KnowledgeArticleMeta {
+  content: string
 }
 
 // 知识库分类
 export interface KnowledgeCategory {
   id: string
   name: string
-  articles: KnowledgeArticle[]
+  articles: KnowledgeArticleMeta[]
 }
 
-// 博客文章
-export interface Article {
+// 不含正文 —— 文章列表用
+export interface ArticleMeta {
   id: string
   title: string
   summary: string
-  content: string
   sourceUrl: string
   sourceTitle: string
   sourceAuthor?: string
@@ -28,6 +31,11 @@ export interface Article {
   publishedAt: string
   createdAt: string
   updatedAt: string
+}
+
+// 含正文 —— 文章详情用
+export interface Article extends ArticleMeta {
+  content: string
 }
 
 // 作者信息

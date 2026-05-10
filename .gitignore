@@ -23,5 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# Personal notes (all subdirs under data)
+# Worktrees
+.worktrees/
+
+# Personal notes (all subdirs under data, except tracked content directories)
 src/data/*/
+!src/data/articles/
+!src/data/knowledge/
+!src/data/__tests__/
