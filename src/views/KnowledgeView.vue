@@ -458,6 +458,7 @@ watch(articleContent, () => {
           <div class="skeleton-block"></div>
           <div class="skeleton-block skeleton-block--short"></div>
           <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-block--image"></div>
           <div class="skeleton-block skeleton-block--medium"></div>
         </div>
 
@@ -1627,6 +1628,12 @@ html.dark .nav-next:hover {
 
 .skeleton-block--medium {
   width: 65%;
+}
+
+.skeleton-block--image {
+  height: 140px;
+  width: 100%;
+  border-radius: 14px;
 }
 
 /* Error state */
