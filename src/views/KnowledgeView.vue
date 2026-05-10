@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { knowledgeData, getArticlesByCategory, loadKnowledgeContent, type KnowledgeArticle } from '@/data/knowledge'
+import { knowledgeData, getArticlesByCategory, loadKnowledgeContent } from '@/data/knowledge'
+import type { KnowledgeArticleMeta } from '@/types'
 import ImagePreview from '@/components/ImagePreview.vue'
 import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
 import KnowledgeToc from '@/components/KnowledgeToc.vue'
@@ -19,9 +20,9 @@ const showMobileSidebar = ref(false)
 const showMobileToc = ref(false)
 
 const selectedCategory = ref('ai-basics')
-const selectedArticle = ref<KnowledgeArticle | null>(null)
+const selectedArticleMeta = ref<KnowledgeArticleMeta | null>(null)
 const articleContent = ref('')
-const isContentLoading = ref(false)
+const isContentLoading = ref(true)
 const contentError = ref<string | null>(null)
 
 const expandedCategoryIds = ref<string[]>([])
@@ -56,7 +57,7 @@ const sidebarNav = computed(() => {
         path: `#${category.id}/${article.id}`,
         active:
           selectedCategory.value === category.id &&
-          selectedArticle.value?.id === article.id,
+          selectedArticleMeta.value?.id === article.id,
       })),
     })),
   }
@@ -98,8 +99,8 @@ const loadContent = async (categoryId: string, articleId: string) => {
 }
 
 const retryLoadContent = () => {
-  if (selectedArticle.value) {
-    loadContent(selectedCategory.value, selectedArticle.value.id)
+  if (selectedArticleMeta.value) {
+    loadContent(selectedCategory.value, selectedArticleMeta.value.id).catch(() => {})
   }
 }
 
@@ -111,9 +112,9 @@ const selectArticle = async (categoryId: string, articleId: string) => {
   }
 
   const articles = getArticlesByCategory(categoryId)
-  selectedArticle.value = articles.find((a) => a.id === articleId) || null
+  selectedArticleMeta.value = articles.find((a) => a.id === articleId) || null
 
-  if (selectedArticle.value) {
+  if (selectedArticleMeta.value) {
     window.location.hash = `#/knowledge#${categoryId}/${articleId}`
   }
 
@@ -121,7 +122,7 @@ const selectArticle = async (categoryId: string, articleId: string) => {
     window.scrollTo({ top: 0, behavior: 'auto' })
   })
 
-  if (selectedArticle.value) {
+  if (selectedArticleMeta.value) {
     await loadContent(categoryId, articleId)
   }
 }
@@ -232,17 +233,17 @@ const currentCategoryArticles = computed(() => {
 
 const prevArticle = computed(() => {
   const articles = currentCategoryArticles.value
-  if (!selectedArticle.value || !articles.length) return null
+  if (!selectedArticleMeta.value || !articles.length) return null
 
-  const prevArticles = articles.filter((a) => a.order < selectedArticle.value!.order)
+  const prevArticles = articles.filter((a) => a.order < selectedArticleMeta.value!.order)
   return prevArticles.length ? prevArticles[prevArticles.length - 1] : null
 })
 
 const nextArticle = computed(() => {
   const articles = currentCategoryArticles.value
-  if (!selectedArticle.value || !articles.length) return null
+  if (!selectedArticleMeta.value || !articles.length) return null
 
-  const nextArticles = articles.filter((a) => a.order > selectedArticle.value!.order)
+  const nextArticles = articles.filter((a) => a.order > selectedArticleMeta.value!.order)
   return nextArticles.length ? nextArticles[0] : null
 })
 
@@ -291,18 +292,12 @@ onMounted(async () => {
 
   if (firstCategory?.articles?.[0]) {
     selectedCategory.value = firstCategory.id
-    selectedArticle.value = firstCategory.articles[0]
+    selectedArticleMeta.value = firstCategory.articles[0]
     expandedCategoryIds.value = [firstCategory.id]
 
-    // Load content for initial article
+    // Load content for initial article — watch(articleContent) handles observer setup
     await loadContent(firstCategory.id, firstCategory.articles[0].id)
   }
-
-  nextTick(() => {
-    setTimeout(() => {
-      setupObserver()
-    }, 180)
-  })
 })
 
 onUnmounted(() => {
@@ -328,7 +323,7 @@ watch(articleContent, () => {
         :categories="knowledgeData"
         :expanded-category-ids="expandedCategoryIds"
         :selected-category="selectedCategory"
-        :selected-article="selectedArticle"
+        :selected-article="selectedArticleMeta"
         @navigate="(catId: string, artId: string) => handleNavClick(`#${catId}/${artId}`)"
         @toggle-category="toggleGroup"
       />
@@ -355,7 +350,7 @@ watch(articleContent, () => {
           :categories="knowledgeData"
           :expanded-category-ids="expandedCategoryIds"
           :selected-category="selectedCategory"
-          :selected-article="selectedArticle"
+          :selected-article="selectedArticleMeta"
           @navigate="(catId: string, artId: string) => { selectArticle(catId, artId); showMobileSidebar = false }"
           @toggle-category="toggleGroup"
         />
@@ -443,11 +438,11 @@ watch(articleContent, () => {
         </nav>
 
         <h1 class="article-title">
-          {{ selectedArticle?.title || '' }}
+          {{ selectedArticleMeta?.title || '' }}
         </h1>
 
         <p class="article-summary">
-          {{ selectedArticle?.description || '' }}
+          {{ selectedArticleMeta?.description || '' }}
         </p>
       </header>
 
@@ -464,7 +459,7 @@ watch(articleContent, () => {
 
         <div v-else-if="contentError" class="error-content">
           <svg class="error-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15v-2h4v2zm0-4V7h4v6z" fill="currentColor"/>
           </svg>
           <p class="error-message">加载失败</p>
           <p class="error-detail">{{ contentError }}</p>
@@ -472,7 +467,7 @@ watch(articleContent, () => {
         </div>
 
         <div
-          v-else-if="selectedArticle && articleContent"
+          v-else-if="selectedArticleMeta && articleContent"
           class="markdown-content"
           v-html="renderMarkdown(articleContent, `/logic/knowledge/${selectedCategory}/`)"
           @click="handleImageClick"

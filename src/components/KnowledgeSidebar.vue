@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { KnowledgeCategory, KnowledgeArticle } from '@/types'
+import type { KnowledgeCategory, KnowledgeArticleMeta } from '@/types'
 import { stopWheelPropagationWhenScrollable } from '@/utils/scroll'
 
 const props = defineProps<{
   categories: KnowledgeCategory[]
   expandedCategoryIds: string[]
   selectedCategory: string
-  selectedArticle: KnowledgeArticle | null
+  selectedArticle: KnowledgeArticleMeta | null
   mode: 'desktop' | 'mobile'
 }>()
 
