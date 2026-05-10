@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { knowledgeData, getArticlesByCategory, type KnowledgeArticle } from '@/data/knowledge'
+import { knowledgeData, getArticlesByCategory, loadKnowledgeContent, type KnowledgeArticle } from '@/data/knowledge'
 import ImagePreview from '@/components/ImagePreview.vue'
 import KnowledgeSidebar from '@/components/KnowledgeSidebar.vue'
 import KnowledgeToc from '@/components/KnowledgeToc.vue'
@@ -20,6 +20,9 @@ const showMobileToc = ref(false)
 
 const selectedCategory = ref('ai-basics')
 const selectedArticle = ref<KnowledgeArticle | null>(null)
+const articleContent = ref('')
+const isContentLoading = ref(false)
+const contentError = ref<string | null>(null)
 
 const expandedCategoryIds = ref<string[]>([])
 
@@ -73,7 +76,34 @@ const toggleGroup = (index: number) => {
   }
 }
 
-const selectArticle = (categoryId: string, articleId: string) => {
+let currentLoadId = 0
+
+const loadContent = async (categoryId: string, articleId: string) => {
+  const loadId = ++currentLoadId
+  isContentLoading.value = true
+  contentError.value = null
+  articleContent.value = ''
+  try {
+    const content = await loadKnowledgeContent(categoryId, articleId)
+    if (loadId !== currentLoadId) return // Stale response
+    articleContent.value = content
+  } catch (e) {
+    if (loadId !== currentLoadId) return
+    contentError.value = (e as Error).message
+  } finally {
+    if (loadId === currentLoadId) {
+      isContentLoading.value = false
+    }
+  }
+}
+
+const retryLoadContent = () => {
+  if (selectedArticle.value) {
+    loadContent(selectedCategory.value, selectedArticle.value.id)
+  }
+}
+
+const selectArticle = async (categoryId: string, articleId: string) => {
   selectedCategory.value = categoryId
 
   if (!expandedCategoryIds.value.includes(categoryId)) {
@@ -90,6 +120,10 @@ const selectArticle = (categoryId: string, articleId: string) => {
   nextTick(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
   })
+
+  if (selectedArticle.value) {
+    await loadContent(categoryId, articleId)
+  }
 }
 
 const handleNavClick = (path: string) => {
@@ -147,8 +181,8 @@ function flattenToc(toc: TocItem[]): TocItem[] {
 const setupObserver = () => {
   observer?.disconnect()
 
-  if (selectedArticle.value?.content) {
-    const flatToc = generateToc(selectedArticle.value.content)
+  if (articleContent.value) {
+    const flatToc = generateToc(articleContent.value)
     tocItems.value = buildNestedToc(flatToc)
   } else {
     tocItems.value = []
@@ -248,7 +282,7 @@ const closeImagePreview = () => {
   previewImageSrc.value = ''
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateResponsiveState()
 
   window.addEventListener('resize', handleResize)
@@ -259,6 +293,9 @@ onMounted(() => {
     selectedCategory.value = firstCategory.id
     selectedArticle.value = firstCategory.articles[0]
     expandedCategoryIds.value = [firstCategory.id]
+
+    // Load content for initial article
+    await loadContent(firstCategory.id, firstCategory.articles[0].id)
   }
 
   nextTick(() => {
@@ -273,7 +310,7 @@ onUnmounted(() => {
   observer?.disconnect()
 })
 
-watch(selectedArticle, () => {
+watch(articleContent, () => {
   nextTick(() => {
     setTimeout(() => {
       setupObserver()
@@ -415,10 +452,28 @@ watch(selectedArticle, () => {
       </header>
 
       <article class="article-body">
+        <div v-if="isContentLoading" class="skeleton-content">
+          <div class="skeleton-block skeleton-block--title"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-block--short"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-block--medium"></div>
+        </div>
+
+        <div v-else-if="contentError" class="error-content">
+          <svg class="error-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
+          </svg>
+          <p class="error-message">加载失败</p>
+          <p class="error-detail">{{ contentError }}</p>
+          <button class="error-retry-btn" @click="retryLoadContent">重试</button>
+        </div>
+
         <div
-          v-if="selectedArticle"
+          v-else-if="selectedArticle && articleContent"
           class="markdown-content"
-          v-html="renderMarkdown(selectedArticle.content)"
+          v-html="renderMarkdown(articleContent, `/logic/knowledge/${selectedCategory}/`)"
           @click="handleImageClick"
         ></div>
 
@@ -1534,5 +1589,101 @@ html.dark .nav-next:hover {
   .nav-next {
     margin-left: 0;
   }
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-content {
+  padding: 4px 0 20px;
+}
+
+.skeleton-block {
+  height: 18px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-soft) 25%,
+    rgba(166, 185, 212, 0.12) 50%,
+    var(--surface-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-block--title {
+  height: 28px;
+  width: 55%;
+  margin-bottom: 26px;
+}
+
+.skeleton-block--short {
+  width: 38%;
+}
+
+.skeleton-block--medium {
+  width: 65%;
+}
+
+/* Error state */
+.error-content {
+  padding: 48px 32px;
+  text-align: center;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: #e35050;
+  margin-bottom: 8px;
+}
+
+html.dark .error-icon {
+  color: #f07070;
+}
+
+.error-message {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.error-detail {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  max-width: 400px;
+  word-break: break-word;
+}
+
+.error-retry-btn {
+  padding: 10px 28px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.error-retry-btn:hover {
+  background: var(--surface-strong);
+  color: var(--text-accent);
 }
 </style>
