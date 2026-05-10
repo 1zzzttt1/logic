@@ -40,7 +40,7 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
 
 ### Phase 2: 数据层
 
-- [ ] **Task 5: 抽出 3 篇内联文章为 `.md` 文件**
+- [x] **Task 5: 抽出 3 篇内联文章为 `.md` 文件**
   - 在 `src/data/articles/` 下创建 3 个 .md 文件：
     - `claude-code-best-practices.md`
     - `token-cost-analysis.md`
@@ -48,7 +48,7 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
   - 每个文件包含正确的 YAML frontmatter（title、summary、tags、publishedAt、sourceUrl 等）
   - 确保正文中不含可能被误解析为 `---` 的内容
 
-- [ ] **Task 6: 改造 `src/data/knowledge.ts`**
+- [x] **Task 6: 改造 `src/data/knowledge.ts`**
   - 删除 5 个 `eager: true` glob
   - 导入 `knowledgeMeta`（生成的元数据）
   - 新增 lazy glob：`import.meta.glob('/src/data/knowledge/**/*.md', { query: '?raw', import: 'default', eager: false })`
@@ -56,7 +56,7 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
   - 新增并导出 `loadKnowledgeContent(category: string, id: string): Promise<string>`
   - `getArticlesByCategory` / `getArticleById` 返回 `KnowledgeArticleMeta`
 
-- [ ] **Task 7: 改造 `src/data/articles.ts`**
+- [x] **Task 7: 改造 `src/data/articles.ts`**
   - 删除 `eager: true` glob
   - 导入 `articlesMeta`（生成的元数据）
   - 删除 3 篇硬编码内联文章的 content 字符串

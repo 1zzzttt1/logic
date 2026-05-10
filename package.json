@@ -15,8 +15,9 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "generate-meta": "jiti scripts/generate-metadata.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "run-s test:generate-meta test:articles-data",
+    "test:generate-meta": "jiti scripts/generate-metadata.test.ts",
+    "test:articles-data": "jiti scripts/articles-data.test.ts",
     "prebuild": "pnpm run generate-meta",
     "predev": "pnpm run generate-meta",
     "format": "prettier --write --experimental-cli src/"
