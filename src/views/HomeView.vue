@@ -260,7 +260,6 @@ html.dark .hero-subtitle {
   margin: 0 auto;
   will-change: transform;
   transition:
-    transform 0.22s ease,
     box-shadow 0.22s ease,
     opacity 0.2s ease;
   flex-shrink: 0;
