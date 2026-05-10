@@ -170,3 +170,8 @@ src/
 - 提交风格：祈使语气 ("add X", "fix Y")
 - CI：push 到 main 分支触发 GitHub Actions 部署到 GitHub Pages（`.github/workflows/deploy.yml`）
 - 部署使用 pnpm 10 + Node 20，产物为 `./dist` 目录
+
+
+# 回答要求
+
+- 使用中文回答

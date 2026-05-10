@@ -1,0 +1,14 @@
+# 问题：所有 markdown 内容在构建时全部内联到 JS Bundle
+
+## 现状
+knowledge.ts 和 articles.ts 使用 import.meta.glob 加载 .md 文件时设置了 eager: true，
+所有文章在编译时被完整嵌入到 JS 输出中。
+
+## 影响
+- 用户访问知识库首页时，即使只看一篇文章，也要下载全部文章的全部正文内容
+- 每新增一篇文章，JS bundle 就多一份完整正文，首屏体积随内容线性膨胀
+- 当文章积累到几十上百篇时，加载速度会持续恶化
+
+## 改进方向
+将 eager: true 改为 eager: false，改为按需动态 import。
+访问某篇文章时再去加载对应的 .md 文件内容，每篇文章独立成一个 chunk。

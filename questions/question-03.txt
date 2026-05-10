@@ -1,0 +1,19 @@
+# 问题：知识库分类硬编码，新增分类需要修改源码
+
+## 现状
+knowledge.ts 中每个分类都要手动写三段代码：
+1. 单独声明一个 import.meta.glob（如 aiBasicsModules）
+2. 调用 convertToArticles 转换
+3. 在 knowledgeData 数组中注册
+
+而目录结构 knowledge/{category}/*.md 本身已经隐含了分类信息。
+
+## 影响
+- 新增分类需要改动多处代码，容易遗漏
+- 不符合"约定优于配置"的原则
+- 代码冗余，5 个分类还好，分类多了很难维护
+
+## 改进方向
+使用通配 glob 一次性匹配所有分类：
+import.meta.glob('/src/data/knowledge/**/*.md')
+然后从文件路径中自动提取分类 ID，无需手动注册。

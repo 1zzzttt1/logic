@@ -10,7 +10,22 @@
       "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
       "Skill(update-config)",
       "Bash(pnpm type-check:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npx jiti:*)",
+      "Bash(pnpm run:*)",
+      "Bash(jiti scripts/generate-metadata.test.ts)",
+      "Bash(ls -d src/data/*/)",
+      "Bash(pnpm add:*)",
+      "Bash(vitest --version)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/vitest/package.json'\\); console.log\\(JSON.stringify\\(pkg.peerDependencies, null, 2\\)\\)\")",
+      "Bash(pnpm vitest:*)",
+      "Bash(pnpm build-only:*)",
+      "Bash(npx vitest:*)",
+      "Bash(xxd \"C:/Users/zym/Desktop/logic/.worktrees/lazy-md-loading/src/data/knowledge-meta.ts\")",
+      "Bash(pnpm test:*)",
+      "Bash(gh pr create --title 'refactor: lazy markdown content loading with async rendering' --body ':*)",
+      "Bash(gh pr:*)"
     ]
   },
   "hooks": {
