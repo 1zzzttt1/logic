@@ -68,7 +68,7 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
 
 ### Phase 3: 视图层
 
-- [ ] **Task 8: 改造 `KnowledgeView.vue`**
+- [x] **Task 8: 改造 `KnowledgeView.vue`**
   - `selectedArticle` 拆为 `selectedArticleMeta`（同步 ref）+ `articleContent`（异步 ref）
   - 新增 `isContentLoading: ref<boolean>`
   - `selectArticle()` 改为 async：立即设置 meta → 异步加载 content
@@ -77,7 +77,7 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
   - TOC 在 `articleContent` 变化后通过 watch 重新生成
   - 骨架屏样式：模拟文章排版（标题块 + 段落块 + 图片块）
 
-- [ ] **Task 9: 改造 `ArticleDetailView.vue`**
+- [x] **Task 9: 改造 `ArticleDetailView.vue`**
   - 元数据从 `mdArticles`（`ArticleMeta[]`）同步查找
   - 新增 `articleContent: ref<string>` + `isContentLoading: ref<boolean>`
   - `watch(route.params.id, { immediate: true })` 异步加载正文
@@ -89,12 +89,12 @@ Phase 1（可并行） → Phase 2（依赖 Phase 1） → Phase 3（依赖 Phas
 
 ### Phase 4: 验证
 
-- [ ] **Task 10: 运行 `pnpm build` 验证构建**
+- [x] **Task 10: 运行 `pnpm build` 验证构建**
   - 确认构建成功
   - 检查 dist 产物：每篇 .md 文章应生成为独立 chunk
   - 确认主 bundle 体积显著减小
 
-- [ ] **Task 11: 运行 `pnpm dev` 验证开发流程**
+- [x] **Task 11: 运行 `pnpm dev` 验证开发流程**
   - 确认 `predev` 钩子正常执行（生成元数据）
   - 确认知识库页面：点击文章正常加载正文
   - 确认文章列表/详情页正常
