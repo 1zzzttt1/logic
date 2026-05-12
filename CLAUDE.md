@@ -170,3 +170,9 @@ src/
 - 提交风格：祈使语气 ("add X", "fix Y")
 - CI：push 到 main 分支触发 GitHub Actions 部署到 GitHub Pages（`.github/workflows/deploy.yml`）
 - 部署使用 pnpm 10 + Node 20，产物为 `./dist` 目录
+
+## 进行中的工作
+
+正在执行代码质量修复计划，详见 `.claude/plans/recursive-stargazing-wall.md`。
+进度通过项目记忆（`.claude/projects/C--Users-zym-Desktop-logic/memory/`）跟踪。
+每轮启动前请读取 MEMORY.md 和计划文件获取当前状态。
