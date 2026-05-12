@@ -25,6 +25,8 @@ dist-ssr
 
 # Worktrees
 .worktrees/
+.claude/worktrees/
+*.stackdump
 
 # Personal notes (all subdirs under data, except tracked content directories)
 src/data/*/

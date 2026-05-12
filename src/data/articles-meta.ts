@@ -4,6 +4,34 @@ import type { ArticleMeta } from '@/types'
 
 export const articlesMeta: ArticleMeta[] = [
   {
+    "id": "Superpowers",
+    "title": "Superpowers： 强大的 TDD（测试驱动开发）",
+    "summary": "",
+    "tags": [
+      "AI Coding",
+      "测试驱动开发"
+    ],
+    "publishedAt": "2026-04-20",
+    "sourceUrl": "",
+    "sourceTitle": "",
+    "createdAt": "2026-04-20",
+    "updatedAt": "2026-04-20"
+  },
+  {
+    "id": "OpenSpec",
+    "title": "OpenSpec：灵活的 SDD（规范驱动开发）",
+    "summary": "",
+    "tags": [
+      "AI Coding",
+      "规范驱动开发"
+    ],
+    "publishedAt": "2026-04-15",
+    "sourceUrl": "",
+    "sourceTitle": "",
+    "createdAt": "2026-04-15",
+    "updatedAt": "2026-04-15"
+  },
+  {
     "id": "hello",
     "title": "AI Agent 的外部能力： \"MCP\" 还是 \"SKill + CLI\"？",
     "summary": "",
