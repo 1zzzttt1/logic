@@ -103,7 +103,7 @@ export function createKnowledgeRenderer(basePath: string) {
       normalizedSrc = basePath + href.replace(/^\.\//, '')
     }
 
-    return `<img src="${normalizedSrc}" alt="${text}" class="markdown-image" data-preview-src="${normalizedSrc}" />`
+    return `<img src="${normalizedSrc}" alt="${text}" loading="lazy" class="markdown-image" data-preview-src="${normalizedSrc}" />`
   }
 
   renderer.codespan = (token: any) => {

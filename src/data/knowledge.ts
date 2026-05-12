@@ -2,9 +2,6 @@ import { parseFrontmatter } from '@/utils/frontmatter'
 import { knowledgeMeta } from '@/data/knowledge-meta'
 import type { KnowledgeArticleMeta, KnowledgeCategory } from '@/types'
 
-// 向后兼容：KnowledgeView.vue 导入 type KnowledgeArticle，实际指向无 content 的元数据类型
-// TODO: Task 8 会将 KnowledgeView.vue 中的导入改为 KnowledgeArticleMeta
-export type KnowledgeArticle = KnowledgeArticleMeta
 
 // 分类配置（固定列表）
 export const knowledgeCategories = [

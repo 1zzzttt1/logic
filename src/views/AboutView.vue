@@ -26,7 +26,7 @@ const openGitHub = () => {
         <p class="bio">{{ author.bio }}</p>
 
         <div v-if="author.location" class="location">
-          <span class="material-symbols-outlined">location_on</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           <span>{{ author.location }}</span>
         </div>
       </section>
@@ -40,7 +40,7 @@ const openGitHub = () => {
             class="contact-btn email-btn"
             @click="sendEmail"
           >
-            <span class="material-symbols-outlined">mail</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 7L2 4"/></svg>
             <span>发送邮件</span>
           </button>
 
@@ -49,7 +49,7 @@ const openGitHub = () => {
             class="contact-btn github-btn"
             @click="openGitHub"
           >
-            <span class="material-symbols-outlined">code</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             <span>GitHub</span>
           </button>
         </div>
@@ -117,10 +117,6 @@ html.dark .location {
   color: #7A766F;
 }
 
-.location .material-symbols-outlined {
-  font-size: 18px;
-}
-
 .contact-section {
   margin-bottom: 3rem;
 }
@@ -155,10 +151,6 @@ html.dark .section-title {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
-}
-
-.contact-btn .material-symbols-outlined {
-  font-size: 20px;
 }
 
 .email-btn {

@@ -1,12 +1,4 @@
-export interface Author {
-  name: string
-  avatar?: string
-  bio: string
-  email?: string
-  github?: string
-  twitter?: string
-  location?: string
-}
+import type { Author } from '@/types'
 
 export const author: Author = {
   name: 'YMZ',
