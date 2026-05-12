@@ -591,7 +591,7 @@ onUnmounted(() => {
               :key="item.name"
               :href="item.href"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               {{ item.name }}
             </a>

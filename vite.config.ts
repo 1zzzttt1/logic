@@ -8,7 +8,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevTools(),
+    // vite-plugin-vue-devtools is dev-only by design and does nothing in production builds
+    ...(process.env.NODE_ENV !== 'production' ? [vueDevTools()] : []),
   ],
   base: '/logic/',
   resolve: {

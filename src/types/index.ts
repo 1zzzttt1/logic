@@ -7,10 +7,6 @@ export interface KnowledgeArticleMeta {
   order: number
 }
 
-// 含正文 —— 文章渲染用
-export interface KnowledgeArticle extends KnowledgeArticleMeta {
-  content: string
-}
 
 // 知识库分类
 export interface KnowledgeCategory {

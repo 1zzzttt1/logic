@@ -1,6 +1,12 @@
 // 自动去除引号
 function stripQuotes(value: string): string {
-  return value.replace(/^["']|["']$/g, '')
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1)
+  }
+  return value
 }
 
 // 统一处理两种 tags 格式
@@ -19,7 +25,7 @@ export function parseFrontmatter(content: string): {
   // 先统一换行符
   const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 
-  const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  const match = normalized.match(/^---\n([\s\S]*?)\n---(?:\n([\s\S]*))?$/)
   if (!match) {
     return { metadata: {}, content }
   }
@@ -44,7 +50,8 @@ export function parseFrontmatter(content: string): {
             .map((s) => stripQuotes(s.trim()))
         } else if (keyTrimmed === 'order') {
           // order 字段特殊处理，确保转为数字
-          metadata[keyTrimmed] = parseInt(value, 10)
+          const parsed = parseInt(value, 10)
+          metadata[keyTrimmed] = Number.isNaN(parsed) ? 0 : parsed
         } else {
           metadata[keyTrimmed] = stripQuotes(value)
         }
@@ -53,7 +60,7 @@ export function parseFrontmatter(content: string): {
 
     // 处理 YAML 列表格式（多行破折号列表）
     // 例如: tags:\n  - value1\n  - value2
-    const listKeyRe = /^(\w+):\s*$/gm
+    const listKeyRe = /^([a-zA-Z_][a-zA-Z0-9_.-]*):\s*$/gm
     let lm: RegExpExecArray | null
     while ((lm = listKeyRe.exec(yamlStr)) !== null) {
       const key = lm[1]!
