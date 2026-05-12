@@ -283,7 +283,10 @@ html.dark .hero-subtitle {
   line-height: 1;
 }
 
-
+.cta-btn:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
 
 html.dark .cta-btn {
   background: #ffffff;
